@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "রাশেদ টেলিকম — শপ ম্যানেজমেন্ট (Rashed Telecom)",
+    name: "রাশেদ টেলিকম — শপ ম্যানেজমেন্ট",
     short_name: "Rashed Telecom",
     description: "টেলিকম পণ্য বিক্রয়, মোবাইল সার্ভিসিং ও অ্যাকাউন্টিং পিডব্লিউএ (Telecom Sales & Mobile Servicing Management PWA)",
     start_url: "/app",
