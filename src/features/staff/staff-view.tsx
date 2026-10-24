@@ -264,149 +264,165 @@ export function StaffView({
 
   return (
     <div className="space-y-6">
-      {/* Banner */}
-      <div className="bg-card p-6 rounded-xl border shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <Users className="w-7 h-7 text-primary" />
-            কর্মচারী ব্যবস্থাপনা ও পে-রোল (Staff & Payroll Operations)
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            দোকানের সকল কর্মচারীদের প্রোফাইল, দৈনিক উপস্থিতি এবং নিয়মিত বেতন-ভাতা সংক্রান্ত হিসাব।
-          </p>
-        </div>
+      {/* Elevated Command Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-r from-card/90 via-card/60 to-card/90 p-6 sm:p-7 backdrop-blur-xl shadow-xl">
+        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute right-32 -bottom-20 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
 
-        <div className="flex items-center gap-2">
-          {activeTab === "STAFF" && (
-            <button
-              onClick={() => setIsStaffModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              নতুন কর্মী যোগ করুন
-            </button>
-          )}
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25 ring-2 ring-white/10 shrink-0">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+                  কর্মচারী ব্যবস্থাপনা ও পে-রোল
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-500/10 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400">
+                  <UserCheck className="w-3 h-3" />
+                  Staff Operations
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                সকল কর্মচারীদের প্রোফাইল, দৈনিক বায়োমেট্রিক উপস্থিতি এবং নিয়মিত বেতন-ভাতা বিতরণ
+              </p>
+            </div>
+          </div>
 
-          {activeTab === "PAYROLL" && (
-            <button
-              onClick={() => setIsPayrollModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white font-medium text-sm hover:bg-emerald-700 shadow-xs"
-            >
-              <CreditCard className="w-4 h-4" />
-              বেতন প্রদান করুন (Disburse Salary)
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {activeTab === "STAFF" && (
+              <button
+                onClick={() => setIsStaffModalOpen(true)}
+                className="shimmer-button inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-sm shadow-lg shadow-cyan-500/25 hover:brightness-110 transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>নতুন কর্মী যোগ করুন</span>
+              </button>
+            )}
+
+            {activeTab === "PAYROLL" && (
+              <button
+                onClick={() => setIsPayrollModalOpen(true)}
+                className="shimmer-button inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/25 hover:brightness-110 transition-all cursor-pointer"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>বেতন প্রদান করুন (Disburse)</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-border space-x-1 sm:space-x-4 overflow-x-auto">
+      {/* Floating Pill Tabs Bar */}
+      <div className="glass-panel p-1.5 rounded-2xl border border-border/60 backdrop-blur-xl flex items-center gap-2 overflow-x-auto shadow-md">
         <button
           onClick={() => setActiveTab("STAFF")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "STAFF"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/20"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
           <Users className="w-4 h-4" />
-          কর্মচারী তালিকা ({staffList.length})
+          <span>কর্মচারী তালিকা ({staffList.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("ATTENDANCE")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "ATTENDANCE"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/20"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
           <Calendar className="w-4 h-4" />
-          দৈনিক উপস্থিতি (Attendance)
+          <span>দৈনিক উপস্থিতি (Attendance)</span>
         </button>
 
         <button
           onClick={() => setActiveTab("PAYROLL")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "PAYROLL"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/20"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
           <CreditCard className="w-4 h-4" />
-          বেতন ও কমিশন বিতরণ (Payroll)
+          <span>বেতন ও কমিশন বিতরণ (Payroll)</span>
         </button>
       </div>
 
       {/* TAB 1: STAFF LIST */}
       {activeTab === "STAFF" && (
         <div className="space-y-4">
-          <div className="bg-card p-4 rounded-xl border shadow-xs">
+          <div className="glass-panel p-3.5 rounded-2xl border border-border/60 backdrop-blur-xl shadow-md">
             <div className="relative w-full sm:w-96">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="নাম, আইডি কোড, পদবী বা মোবাইল দিয়ে খুঁজুন..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border bg-background focus:outline-hidden"
+                className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-card/80 rounded-xl border border-border/70 focus:outline-hidden focus:ring-2 focus:ring-cyan-500/30 transition-all font-medium"
               />
             </div>
           </div>
 
-          <div className="bg-card rounded-xl border shadow-xs overflow-hidden">
+          <div className="glass-panel rounded-2xl border border-border/60 overflow-hidden shadow-xl backdrop-blur-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b">
+                <thead className="bg-muted/70 backdrop-blur-md border-b border-border/60 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                   <tr>
-                    <th className="px-4 py-3">আইডি কোড</th>
-                    <th className="px-4 py-3">কর্মচারীর নাম</th>
-                    <th className="px-4 py-3">পদবী ও বিভাগ</th>
-                    <th className="px-4 py-3">রোল (System Role)</th>
-                    <th className="px-4 py-3">যোগাযোগ</th>
-                    <th className="px-4 py-3 text-right">মূল বেতন (৳)</th>
-                    <th className="px-4 py-3 text-center">উপস্থিতি</th>
+                    <th className="px-5 py-3.5">আইডি কোড</th>
+                    <th className="px-4 py-3.5">কর্মচারীর নাম</th>
+                    <th className="px-4 py-3.5">পদবী ও বিভাগ</th>
+                    <th className="px-4 py-3.5">রোল (System Role)</th>
+                    <th className="px-4 py-3.5">যোগাযোগ</th>
+                    <th className="px-4 py-3.5 text-right">মূল বেতন (৳)</th>
+                    <th className="px-4 py-3.5 text-center">উপস্থিতি</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/60">
                   {filteredStaff.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                        কোন কর্মী পাওয়া যায়নি।
+                      <td colSpan={7} className="text-center py-16 text-muted-foreground">
+                        <Users className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="font-bold text-base text-foreground">কোন কর্মী পাওয়া যায়নি</p>
                       </td>
                     </tr>
                   ) : (
                     filteredStaff.map((staff) => (
-                      <tr key={staff.id} className="hover:bg-muted/20">
-                        <td className="px-4 py-3 font-mono font-bold text-primary">
+                      <tr key={staff.id} className="hover:bg-cyan-500/5 transition-colors group">
+                        <td className="px-5 py-4 font-mono font-bold text-primary group-hover:text-cyan-500 transition-colors">
                           {staff.employeeCode}
                         </td>
-                        <td className="px-4 py-3 font-semibold text-foreground">
+                        <td className="px-4 py-4 font-bold text-foreground">
                           {staff.fullName}
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-foreground">{staff.designation}</div>
-                          <div className="text-xs text-muted-foreground">{staff.department}</div>
+                        <td className="px-4 py-4">
+                          <div className="font-bold text-foreground text-xs">{staff.designation}</div>
+                          <div className="text-[11px] text-muted-foreground">{staff.department}</div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        <td className="px-4 py-4">
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
                             {staff.roleName}
                           </span>
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                          <div>{staff.phone}</div>
-                          {staff.email && <div>{staff.email}</div>}
+                        <td className="px-4 py-4 font-mono text-xs text-muted-foreground">
+                          <div className="font-semibold text-foreground">{staff.phone}</div>
+                          {staff.email && <div className="text-[11px]">{staff.email}</div>}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono font-bold text-foreground">
+                        <td className="px-4 py-4 text-right font-mono font-black text-foreground">
                           {formatBDT(staff.baseSalary)}
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-4 text-center">
                           <button
                             onClick={() => {
                               setAttendanceStaff(staff);
                               setIsAttendanceModalOpen(true);
                             }}
-                            className="text-xs font-medium px-2.5 py-1 rounded-md border hover:bg-muted"
+                            className="shimmer-button inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-xs hover:brightness-110 transition-all cursor-pointer"
                           >
                             হাজিরা দিন
                           </button>
@@ -424,56 +440,60 @@ export function StaffView({
       {/* TAB 2: ATTENDANCE */}
       {activeTab === "ATTENDANCE" && (
         <div className="space-y-4">
-          <div className="bg-card p-5 rounded-xl border shadow-xs flex items-center justify-between">
+          <div className="glass-panel p-5 rounded-2xl border border-border/60 backdrop-blur-xl flex items-center justify-between shadow-md">
             <div>
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-primary" />
+                <Calendar className="w-5 h-5 text-cyan-500" />
                 আজকের উপস্থিতি রেকর্ড ({formatDhakaDate(new Date())})
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                কর্মচারীদের দৈনিক উপস্থিতি ও সময়মত আগমন ট্র্যাক করুন।
+                কর্মচারীদের দৈনিক উপস্থিতি ও সময়মত আগমন পর্যবেক্ষণ করুন।
               </p>
             </div>
           </div>
 
-          <div className="bg-card rounded-xl border shadow-xs overflow-hidden">
+          <div className="glass-panel rounded-2xl border border-border/60 overflow-hidden shadow-xl backdrop-blur-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b">
+                <thead className="bg-muted/70 backdrop-blur-md border-b border-border/60 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                   <tr>
-                    <th className="px-4 py-3">আইডি কোড</th>
-                    <th className="px-4 py-3">কর্মচারী</th>
-                    <th className="px-4 py-3">স্ট্যাটাস</th>
-                    <th className="px-4 py-3">আগমনের সময়</th>
-                    <th className="px-4 py-3">মন্তব্য</th>
+                    <th className="px-5 py-3.5">আইডি কোড</th>
+                    <th className="px-4 py-3.5">কর্মচারী</th>
+                    <th className="px-4 py-3.5">স্ট্যাটাস</th>
+                    <th className="px-4 py-3.5">আগমনের সময়</th>
+                    <th className="px-4 py-3.5">মন্তব্য</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/60">
                   {attendanceList.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-muted-foreground">
-                        আজকের জন্য এখনও কোন হাজিরা রেকর্ড করা হয়নি।
+                      <td colSpan={5} className="text-center py-16 text-muted-foreground">
+                        <Calendar className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="font-bold text-base text-foreground">আজকের জন্য এখনও কোন হাজিরা রেকর্ড করা হয়নি</p>
                       </td>
                     </tr>
                   ) : (
                     attendanceList.map((att) => (
-                      <tr key={att.id} className="hover:bg-muted/20">
-                        <td className="px-4 py-3 font-mono font-bold text-primary">
+                      <tr key={att.id} className="hover:bg-cyan-500/5 transition-colors group">
+                        <td className="px-5 py-4 font-mono font-bold text-primary group-hover:text-cyan-500 transition-colors">
                           {att.employeeCode}
                         </td>
-                        <td className="px-4 py-3 font-medium text-foreground">
+                        <td className="px-4 py-4 font-bold text-foreground">
                           {att.staffName}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-4">
                           <span
-                            className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+                            className={`text-xs px-3 py-1 rounded-full font-bold inline-flex items-center gap-1.5 ${
                               att.status === "PRESENT"
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                                 : att.status === "LATE"
-                                ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
-                                : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"
+                                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                                : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
                             }`}
                           >
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              att.status === "PRESENT" ? "bg-emerald-500" : att.status === "LATE" ? "bg-amber-500" : "bg-rose-500"
+                            }`} />
                             {att.status === "PRESENT"
                               ? "উপস্থিত (Present)"
                               : att.status === "LATE"
@@ -483,10 +503,10 @@ export function StaffView({
                               : "অনুপস্থিত (Absent)"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                        <td className="px-4 py-4 text-xs text-muted-foreground font-medium">
                           {att.checkInTime ? formatDhakaDate(new Date(att.checkInTime)) : "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                        <td className="px-4 py-4 text-xs text-muted-foreground font-medium">
                           {att.notes || "—"}
                         </td>
                       </tr>
@@ -502,10 +522,10 @@ export function StaffView({
       {/* TAB 3: PAYROLL */}
       {activeTab === "PAYROLL" && (
         <div className="space-y-4">
-          <div className="bg-card p-5 rounded-xl border shadow-xs flex items-center justify-between">
+          <div className="glass-panel p-5 rounded-2xl border border-border/60 backdrop-blur-xl flex items-center justify-between shadow-md">
             <div>
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-emerald-600" />
+                <CreditCard className="w-5 h-5 text-emerald-500" />
                 মাসিক বেতন ও ভাতা প্রদান বিবরণী (Payroll Disbursed)
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -514,55 +534,56 @@ export function StaffView({
             </div>
           </div>
 
-          <div className="bg-card rounded-xl border shadow-xs overflow-hidden">
+          <div className="glass-panel rounded-2xl border border-border/60 overflow-hidden shadow-xl backdrop-blur-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b">
+                <thead className="bg-muted/70 backdrop-blur-md border-b border-border/60 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                   <tr>
-                    <th className="px-4 py-3">বেতন মাস</th>
-                    <th className="px-4 py-3">কর্মচারী</th>
-                    <th className="px-4 py-3 text-right">মূল বেতন (৳)</th>
-                    <th className="px-4 py-3 text-right">কমিশন (৳)</th>
-                    <th className="px-4 py-3 text-right">কর্তন (৳)</th>
-                    <th className="px-4 py-3 text-right">নিট বেতন (৳)</th>
-                    <th className="px-4 py-3">মাধ্যম</th>
-                    <th className="px-4 py-3">প্রদানের তারিখ</th>
+                    <th className="px-5 py-3.5">বেতন মাস</th>
+                    <th className="px-4 py-3.5">কর্মচারী</th>
+                    <th className="px-4 py-3.5 text-right">মূল বেতন (৳)</th>
+                    <th className="px-4 py-3.5 text-right">কমিশন (৳)</th>
+                    <th className="px-4 py-3.5 text-right">কর্তন (৳)</th>
+                    <th className="px-4 py-3.5 text-right">নিট বেতন (৳)</th>
+                    <th className="px-4 py-3.5">মাধ্যম</th>
+                    <th className="px-4 py-3.5">প্রদানের তারিখ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/60">
                   {payrollList.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-12 text-muted-foreground">
-                        এখনও কোন বেতনের রেকর্ড পাওয়া যায়নি।
+                      <td colSpan={8} className="text-center py-16 text-muted-foreground">
+                        <CreditCard className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="font-bold text-base text-foreground">এখনও কোন বেতনের রেকর্ড পাওয়া যায়নি</p>
                       </td>
                     </tr>
                   ) : (
                     payrollList.map((p) => (
-                      <tr key={p.id} className="hover:bg-muted/20">
-                        <td className="px-4 py-3 font-mono font-bold text-primary">
+                      <tr key={p.id} className="hover:bg-emerald-500/5 transition-colors group">
+                        <td className="px-5 py-4 font-mono font-bold text-primary group-hover:text-emerald-500 transition-colors">
                           {p.payrollMonth}
                         </td>
-                        <td className="px-4 py-3 font-medium text-foreground">
+                        <td className="px-4 py-4 font-bold text-foreground">
                           {p.staffName} ({p.employeeCode})
                         </td>
-                        <td className="px-4 py-3 text-right font-mono">
+                        <td className="px-4 py-4 text-right font-mono font-bold text-foreground">
                           {formatBDT(p.baseSalary)}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-emerald-600">
+                        <td className="px-4 py-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                           {p.commissionAmount > 0 ? `+ ${formatBDT(p.commissionAmount)}` : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-rose-600">
+                        <td className="px-4 py-4 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
                           {p.deductions > 0 ? `- ${formatBDT(p.deductions)}` : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        <td className="px-4 py-4 text-right font-mono font-black text-foreground">
                           {formatBDT(p.netAmount)}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs px-2 py-0.5 rounded-md bg-muted font-semibold">
+                        <td className="px-4 py-4">
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-muted/60 border border-border/60 text-foreground">
                             {p.paymentMethod}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                        <td className="px-4 py-4 text-xs text-muted-foreground font-medium whitespace-nowrap">
                           {formatDhakaDate(new Date(p.paidDate))}
                         </td>
                       </tr>

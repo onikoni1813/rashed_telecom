@@ -15,6 +15,9 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  Sparkles,
+  ShieldCheck,
+  TrendingDown,
 } from "lucide-react";
 
 export interface SerializedExpense {
@@ -133,87 +136,122 @@ export function ExpensesView({ shopId, expenses, categories }: ExpensesViewProps
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & Stats */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-6 rounded-xl border shadow-xs">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <Receipt className="w-7 h-7 text-primary" />
-            খরচের হিসাব ও ভাউচার (Expense Management)
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            দোকান ও ব্যবসা পরিচালনার দৈনন্দিন খরচসমূহ ডাবল-এন্ট্রি ব্যালেন্সিং সহকারে রেকর্ড করুন।
-          </p>
-        </div>
+      {/* Elevated Command Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-r from-card/90 via-card/60 to-card/90 p-6 sm:p-7 backdrop-blur-xl shadow-xl">
+        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-rose-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute right-32 -bottom-20 h-56 w-56 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity shadow-xs"
-        >
-          <Plus className="w-4 h-4" />
-          নতুন খরচ যোগ করুন
-        </button>
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/25 ring-2 ring-white/10 shrink-0">
+              <Receipt className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+                  দৈনন্দিন খরচের হিসাব ও ভাউচার
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/10 border border-rose-500/30 text-rose-500 dark:text-rose-400">
+                  <Sparkles className="w-3 h-3" />
+                  Auto-Journal
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                ব্যবসা ও শপ পরিচালনার খরচসমূহ স্বয়ংক্রিয় ডাবল-এন্ট্রি ব্যালেন্সিং সহ সংরক্ষণ
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="shimmer-button inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 text-white font-bold text-sm shadow-lg shadow-rose-500/25 hover:brightness-110 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>নতুন খরচ যোগ করুন</span>
+          </button>
+        </div>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-card p-5 rounded-xl border shadow-xs">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            সর্বমোট খরচ (Total Expenses)
-          </span>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-foreground">
-              {formatBDT(totalExpenseAmount)}
+        <div className="glass-card p-5 rounded-2xl border border-border/50 hover:border-rose-500/40 hover:shadow-xl hover:shadow-rose-500/5 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-rose-500/15 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              সর্বমোট খরচ (Total Expenses)
             </span>
-            <span className="text-xs bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 font-semibold px-2 py-0.5 rounded-full">
+            <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">
+              <TrendingDown className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 font-mono">
+            {formatBDT(totalExpenseAmount)}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-2 font-medium flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 font-bold">
               {expenses.length} টি ভাউচার
             </span>
+            <span>মোট রেকর্ডকৃত খরচ</span>
           </div>
         </div>
 
-        <div className="bg-card p-5 rounded-xl border shadow-xs">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            ব্যবসায়িক খাত (Categories)
-          </span>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-foreground">
-              {categories.length} টি খাত
+        <div className="glass-card p-5 rounded-2xl border border-border/50 hover:border-indigo-500/40 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/15 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              ব্যবসায়িক খাত (Categories)
             </span>
-            <span className="text-xs text-muted-foreground">সক্রিয় চার্ট</span>
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+              <Building2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-foreground">
+            {categories.length} টি খাত
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-2 font-medium">
+            চার্ট অব অ্যাকাউন্টস এর অধীনে সক্রিয় গ্রুপ
           </div>
         </div>
 
-        <div className="bg-card p-5 rounded-xl border shadow-xs">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            অ্যাকাউন্টিং যাচাই (Double Entry)
-          </span>
-          <div className="mt-2 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-            <span className="text-sm font-semibold text-emerald-600">
-              জাবেদা ও খতিয়ান স্বয়ংক্রিয় ব্যালেন্সড
+        <div className="glass-card p-5 rounded-2xl border border-border/50 hover:border-emerald-500/40 hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/15 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              অ্যাকাউন্টিং যাচাই (Double-Entry)
             </span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm sm:text-base">
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
+            <span>জাবেদা ও খতিয়ান ১০০% ব্যালেন্সড</span>
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-2 font-medium">
+            ডেবিট: খরচের খাত | ক্রেডিট: ক্যাশ/ব্যাংক
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-card p-4 rounded-xl border shadow-xs">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+      <div className="glass-panel p-3.5 rounded-2xl border border-border/60 backdrop-blur-xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between shadow-md">
+        <div className="relative flex-1 sm:max-w-md">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             placeholder="ভাউচার নং, প্রাপক, খাত বা বিবরণ দিয়ে খুঁজুন..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border bg-background focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+            className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-card/80 rounded-xl border border-border/70 focus:outline-hidden focus:ring-2 focus:ring-rose-500/30 transition-all font-medium"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full sm:w-auto px-3 py-2 text-sm rounded-lg border bg-background focus:outline-hidden"
+            className="w-full sm:w-auto px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-border/70 bg-card/80 text-foreground font-semibold focus:outline-hidden"
           >
             <option value="ALL">সকল খরচের খাত (All Categories)</option>
             {categories.map((c) => (
@@ -226,58 +264,65 @@ export function ExpensesView({ shopId, expenses, categories }: ExpensesViewProps
       </div>
 
       {/* Expenses Table */}
-      <div className="bg-card rounded-xl border shadow-xs overflow-hidden">
+      <div className="glass-panel rounded-2xl border border-border/60 overflow-hidden shadow-xl backdrop-blur-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b">
+            <thead className="bg-muted/70 backdrop-blur-md border-b border-border/60 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
               <tr>
-                <th className="px-4 py-3">ভাউচার নং</th>
-                <th className="px-4 py-3">তারিখ</th>
-                <th className="px-4 py-3">খরচের খাত</th>
-                <th className="px-4 py-3">প্রাপক / বাবদ</th>
-                <th className="px-4 py-3">পদ্ধতি</th>
-                <th className="px-4 py-3 text-right">পরিমাণ (৳)</th>
-                <th className="px-4 py-3">রেকর্ডকারী</th>
+                <th className="px-5 py-3.5">ভাউচার নং</th>
+                <th className="px-4 py-3.5">তারিখ</th>
+                <th className="px-4 py-3.5">খরচের খাত</th>
+                <th className="px-4 py-3.5">প্রাপক / বাবদ</th>
+                <th className="px-4 py-3.5">পদ্ধতি</th>
+                <th className="px-4 py-3.5 text-right">পরিমাণ (৳)</th>
+                <th className="px-4 py-3.5">রেকর্ডকারী</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border/60">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                    কোন খরচের রেকর্ড পাওয়া যায়নি।
+                  <td colSpan={7} className="text-center py-16 text-muted-foreground">
+                    <Receipt className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
+                    <p className="font-bold text-base text-foreground">কোন খরচের রেকর্ড পাওয়া যায়নি</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      উপরে &apos;নতুন খরচ যোগ করুন&apos; বাটনে ক্লিক করে প্রথম ভাউচার এন্ট্রি করুন।
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filtered.map((e) => (
-                  <tr key={e.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 font-mono font-medium text-primary">
+                  <tr
+                    key={e.id}
+                    className="hover:bg-rose-500/5 transition-colors group"
+                  >
+                    <td className="px-5 py-4 font-mono font-bold text-primary group-hover:text-rose-500 transition-colors">
                       {e.expenseNumber}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                    <td className="px-4 py-4 text-xs text-muted-foreground whitespace-nowrap font-medium">
                       {formatDhakaDate(new Date(e.expenseDate))}
                     </td>
-                    <td className="px-4 py-3 font-medium">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                    <td className="px-4 py-4 font-medium">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30">
                         {e.categoryName}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-foreground">{e.payee || "—"}</div>
+                    <td className="px-4 py-4">
+                      <div className="font-bold text-foreground text-sm">{e.payee || "—"}</div>
                       {e.notes && (
-                        <div className="text-xs text-muted-foreground truncate max-w-xs">
+                        <div className="text-xs text-muted-foreground truncate max-w-xs mt-0.5">
                           {e.notes}
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-semibold px-2 py-1 rounded-md bg-muted text-foreground">
+                    <td className="px-4 py-4">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-muted/60 border border-border/60 text-foreground">
                         {e.paymentMethod}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-rose-600 dark:text-rose-400">
+                    <td className="px-4 py-4 text-right font-mono font-black text-base text-rose-600 dark:text-rose-400">
                       {formatBDT(e.amount)}
                     </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                    <td className="px-4 py-4 text-xs text-muted-foreground font-medium">
                       {e.recordedByName}
                     </td>
                   </tr>
@@ -290,37 +335,41 @@ export function ExpensesView({ shopId, expenses, categories }: ExpensesViewProps
 
       {/* Record Expense Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-card w-full max-w-lg rounded-2xl border shadow-xl p-6 relative">
-            <div className="flex items-center justify-between pb-4 border-b">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-primary" />
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="glass-panel w-full max-w-lg rounded-3xl border border-border/80 shadow-2xl p-6 sm:p-7 relative bg-card/95 overflow-hidden">
+            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-rose-500/15 blur-2xl pointer-events-none" />
+
+            <div className="flex items-center justify-between pb-4 border-b border-border/60 relative z-10">
+              <h2 className="text-lg font-black flex items-center gap-2 text-foreground">
+                <div className="p-1.5 rounded-lg bg-rose-500/15 text-rose-500 border border-rose-500/30">
+                  <Receipt className="w-5 h-5" />
+                </div>
                 নতুন খরচ রেকর্ড করুন (Record Expense)
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/60 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {errorMessage && (
-              <div className="mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg flex items-center gap-2">
+              <div className="mt-4 p-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs rounded-xl flex items-center gap-2 font-medium">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+            <form onSubmit={handleSubmit} className="mt-5 space-y-4 relative z-10">
               <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                <label className="text-xs font-bold text-foreground block mb-1.5">
                   খরচের খাত (Expense Category) *
                 </label>
                 <select
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-hidden"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-border/70 bg-card text-foreground font-semibold focus:outline-hidden focus:ring-2 focus:ring-rose-500/30"
                   required
                 >
                   {categories.map((c) => (
@@ -333,7 +382,7 @@ export function ExpensesView({ shopId, expenses, categories }: ExpensesViewProps
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  <label className="text-xs font-bold text-foreground block mb-1.5">
                     টাকার পরিমাণ (BDT ৳) *
                   </label>
                   <input
@@ -343,14 +392,14 @@ export function ExpensesView({ shopId, expenses, categories }: ExpensesViewProps
                     placeholder="0.00"
                     value={formData.amount}
                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border bg-background font-bold text-foreground"
+                    className="w-full px-3.5 py-2.5 text-base font-mono font-black rounded-xl border border-border bg-card text-foreground focus:ring-2 focus:ring-rose-500/30 outline-hidden"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                    পরিশোধের মাধ্যম (Payment Method) *
+                  <label className="text-xs font-bold text-foreground block mb-1.5">
+                    পরিশোধের মাধ্যম *
                   </label>
                   <select
                     value={formData.paymentMethod}
@@ -360,26 +409,26 @@ export function ExpensesView({ shopId, expenses, categories }: ExpensesViewProps
                         paymentMethod: e.target.value as "CASH" | "BANK" | "BKASH" | "NAGAD",
                       })
                     }
-                    className="w-full px-3 py-2 text-sm rounded-lg border bg-background"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-border/70 bg-card text-foreground font-semibold focus:outline-hidden"
                   >
-                    <option value="CASH">ক্যাশ (Cash on Hand 1000)</option>
+                    <option value="CASH">ক্যাশ (Cash 1000)</option>
                     <option value="BKASH">বিকাশ (bKash 1010)</option>
                     <option value="NAGAD">নগদ (Nagad 1010)</option>
-                    <option value="BANK">ব্যাংক একাউন্ট (Bank 1010)</option>
+                    <option value="BANK">ব্যাংক একাউন্ট</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                <label className="text-xs font-bold text-foreground block mb-1.5">
                   প্রাপকের নাম / বাবদ (Payee / Purpose)
                 </label>
                 <input
                   type="text"
-                  placeholder="যেমন: দোকান ভাড়াবাবদ, বিদ্যুৎ বিল, নাস্তা বাবদ"
+                  placeholder="যেমন: দোকান ভাড়া, বিদ্যুৎ বিল, নাস্তা বাবদ"
                   value={formData.payee}
                   onChange={(e) => setFormData({ ...formData, payee: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border bg-background"
+                  className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-border/70 bg-card text-foreground focus:ring-2 focus:ring-rose-500/30 outline-hidden font-medium"
                 />
               </div>
 
@@ -392,7 +441,7 @@ export function ExpensesView({ shopId, expenses, categories }: ExpensesViewProps
                   placeholder="যেমন: রশিদ নং, বিল ট্রানজেকশন আইডি"
                   value={formData.receiptRef}
                   onChange={(e) => setFormData({ ...formData, receiptRef: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border bg-background"
+                  className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-border/70 bg-card text-foreground focus:ring-2 focus:ring-rose-500/30 outline-hidden font-mono"
                 />
               </div>
 
@@ -405,22 +454,22 @@ export function ExpensesView({ shopId, expenses, categories }: ExpensesViewProps
                   placeholder="খরচ সম্পর্কিত যেকোনো বিশেষ নোট..."
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border bg-background"
+                  className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-border/70 bg-card text-foreground focus:ring-2 focus:ring-rose-500/30 outline-hidden font-medium"
                 />
               </div>
 
-              <div className="pt-3 border-t flex items-center justify-end gap-2">
+              <div className="pt-4 border-t border-border/60 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm rounded-lg border hover:bg-muted font-medium"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   বাতিল
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-sm rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="shimmer-button px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 text-white shadow-lg shadow-rose-500/25 hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   {isSubmitting ? "সংরক্ষণ হচ্ছে..." : "খরচ রেকর্ড ও পোস্টিং সম্পন্ন করুন"}
                 </button>

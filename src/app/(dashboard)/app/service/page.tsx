@@ -1,7 +1,7 @@
 import React from "react";
 import { prisma } from "@/lib/db/prisma";
 import { formatBDT } from "@/lib/i18n";
-import { Wrench, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Wrench, CheckCircle2, Clock, AlertCircle, Sparkles, ShieldCheck, DollarSign, Activity } from "lucide-react";
 import { RepairBoard, SerializedJob } from "@/features/repairs/repair-board";
 
 export const dynamic = "force-dynamic";
@@ -159,39 +159,93 @@ export default async function ServicePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Wrench className="w-6 h-6 text-primary" />
-            <span>মোবাইল সার্ভিসিং ও মেরামত (Repair Servicing)</span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            ডিভাইস গ্রহণ, টেকনিশিয়ান অ্যাসাইন, পার্টস কনজাম্পশন এবং ডেলিভারি হিসাব
-          </p>
+      {/* Elevated Servicing Command Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-r from-card/90 via-card/60 to-card/90 p-6 sm:p-7 backdrop-blur-xl shadow-xl">
+        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute right-32 -bottom-20 h-56 w-56 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/25 ring-2 ring-white/10 shrink-0">
+              <Wrench className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+                  মোবাইল সার্ভিসিং ও টেকনিক্যাল ওয়ার্কবেঞ্চ
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400">
+                  <Sparkles className="w-3 h-3" />
+                  Live Repair Queue
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                ডিভাইস ইনটেক, টেকনিশিয়ান অ্যাসাইন, পার্টস কনজাম্পশন এবং ডেলিভারি ট্র্যাকিং
+              </p>
+            </div>
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold">
+            <ShieldCheck className="w-4 h-4" />
+            <span>Warranty & IMEI Tracked</span>
+          </div>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border bg-card shadow-2xs">
-          <div className="text-xs text-muted-foreground">মোট সার্ভিস জব</div>
-          <div className="text-xl font-bold mt-1 text-foreground">{jobs.length}</div>
+        <div className="glass-card p-4 sm:p-5 rounded-2xl border border-border/50 hover:border-amber-500/40 hover:shadow-xl hover:shadow-amber-500/5 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-amber-500/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-muted-foreground">মোট সার্ভিস জব</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+              <Wrench className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-foreground">{jobs.length}</div>
+          <div className="text-[11px] text-muted-foreground mt-1 font-medium">নিবন্ধিত সর্বমোট রিপেয়ার</div>
         </div>
 
-        <div className="p-4 rounded-xl border bg-card shadow-2xs">
-          <div className="text-xs text-muted-foreground">চলমান মেরামত (In-Repair)</div>
-          <div className="text-xl font-bold mt-1 text-blue-600">{activeRepairsCount}</div>
+        <div className="glass-card p-4 sm:p-5 rounded-2xl border border-border/50 hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-muted-foreground">চলমান মেরামত (Active)</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+              <Activity className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 font-mono">
+            {activeRepairsCount}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-1 font-medium">টেবিল ও বেঞ্চে চিকিৎসাধীন</div>
         </div>
 
-        <div className="p-4 rounded-xl border bg-card shadow-2xs">
-          <div className="text-xs text-muted-foreground">ডেলিভারির জন্য প্রস্তুত</div>
-          <div className="text-xl font-bold mt-1 text-purple-600">{readyCount}</div>
+        <div className="glass-card p-4 sm:p-5 rounded-2xl border border-border/50 hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-500/5 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-muted-foreground">ডেলিভারির জন্য প্রস্তুত</span>
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 font-mono">
+            {readyCount}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-1 font-medium">গ্রাহক পিকআপের অপেক্ষায়</div>
         </div>
 
-        <div className="p-4 rounded-xl border bg-card shadow-2xs">
-          <div className="text-xs text-muted-foreground">সার্ভিস রাজস্ব (Collected)</div>
-          <div className="text-xl font-bold mt-1 text-emerald-600">{formatBDT(totalServiceRevenue)}</div>
+        <div className="glass-card p-4 sm:p-5 rounded-2xl border border-border/50 hover:border-emerald-500/40 hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-muted-foreground">সার্ভিস রাজস্ব (Collected)</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+              <DollarSign className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+            {formatBDT(totalServiceRevenue)}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-1 font-medium">পরিশোধিত মোট সার্ভিস ফি</div>
         </div>
       </div>
 

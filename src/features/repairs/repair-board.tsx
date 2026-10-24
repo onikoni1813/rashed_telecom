@@ -315,34 +315,28 @@ export function RepairBoard({
 
   return (
     <div className="space-y-6">
-      {/* Search and Action Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative flex-1 w-full max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="জব নং, মডেল, গ্রাহকের নাম বা মোবাইল..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-sm rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          >
-            <option value="ALL">সকল স্ট্যাটাস (All)</option>
-            <option value="INTAKE">গৃহীত (INTAKE)</option>
-            <option value="DIAGNOSING">ডায়াগনোসিস (DIAGNOSING)</option>
-            <option value="ESTIMATE_PENDING">অনুমোদন বাকি (PENDING)</option>
-            <option value="ESTIMATE_APPROVED">অনুমোদিত (APPROVED)</option>
-            <option value="IN_REPAIR">মেরামত চলছে (IN_REPAIR)</option>
-            <option value="READY_FOR_DELIVERY">প্রস্তুত (READY)</option>
-            <option value="DELIVERED">ডেলিভার্ড (DELIVERED)</option>
-          </select>
+      {/* Top Servicing Command Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/60 dark:border-white/10 glass-panel p-5 sm:p-6 shadow-xl">
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/25">
+              <Wrench className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-foreground">
+                  মোবাইল সার্ভিসিং ল্যাব বোর্ড
+                </h1>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/20">
+                  ল্যাব বেঞ্চ • লাইভ
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                ডিভাইস ইনটেক, টেকনিশিয়ান ডায়াগনস্টিক্স, কাস্টমার এস্টিমেট ও পার্টস কনজাম্পশন ট্র্যাকার
+              </p>
+            </div>
+          </div>
 
           <button
             type="button"
@@ -351,24 +345,55 @@ export function RepairBoard({
               setSuccessMsg(null);
               setShowIntakeModal(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-xs hover:bg-primary/90 transition-colors whitespace-nowrap"
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold text-sm shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all active:scale-95 whitespace-nowrap self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>নতুন ডিভাইস গ্রহণ (Intake)</span>
+            <span>নতুন ডিভাইস গ্রহণ (Intake - F2)</span>
           </button>
+        </div>
+      </div>
+
+      {/* Search and Action Bar */}
+      <div className="glass-panel p-4 rounded-2xl shadow-sm border border-border/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative flex-1 w-full max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="জব নং, মডেল, গ্রাহকের নাম বা মোবাইল..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-border bg-background/80 text-foreground focus:outline-none focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500 font-medium transition-all"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3.5 py-2.5 text-xs font-bold rounded-xl border border-border bg-background/80 text-foreground focus:outline-none focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500 transition-all"
+          >
+            <option value="ALL">সকল স্ট্যাটাস ({jobs.length})</option>
+            <option value="INTAKE">গৃহীত (INTAKE)</option>
+            <option value="DIAGNOSING">ডায়াগনোসিস (DIAGNOSING)</option>
+            <option value="ESTIMATE_PENDING">অনুমোদন বাকি (PENDING)</option>
+            <option value="ESTIMATE_APPROVED">অনুমোদিত (APPROVED)</option>
+            <option value="IN_REPAIR">মেরামত চলছে (IN_REPAIR)</option>
+            <option value="READY_FOR_DELIVERY">প্রস্তুত (READY)</option>
+            <option value="DELIVERED">ডেলিভার্ড (DELIVERED)</option>
+          </select>
         </div>
       </div>
 
       {/* Global Alerts */}
       {successMsg && (
-        <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* Jobs Table */}
-      <div className="border rounded-xl bg-card shadow-2xs overflow-hidden">
+      <div className="border border-border/80 rounded-2xl glass-panel shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider font-semibold border-b">

@@ -103,55 +103,69 @@ export function ReportsView({ pnl, cashbook, reconciliation }: ReportsViewProps)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-card p-6 rounded-xl border shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <BarChart3 className="w-7 h-7 text-primary" />
-            আর্থিক প্রতিবেদন ও হিসাব বিবরণী (Financial Reports & P&L)
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            ব্যবসায়িক আয়-ব্যয়, নিট লাভ, ক্যাশ বুক খতিয়ান ও সাবলেজার রিকনসিলিয়েশন স্টেটমেন্ট।
-          </p>
+      {/* Elevated Command Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-r from-card/90 via-card/60 to-card/90 p-6 sm:p-7 backdrop-blur-xl shadow-xl">
+        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute right-32 -bottom-20 h-56 w-56 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 ring-2 ring-white/10 shrink-0">
+              <BarChart3 className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+                  আর্থিক প্রতিবেদন ও হিসাব বিবরণী
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                  P&L • Cashbook • Subledger
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                ব্যবসায়িক আয়-ব্যয়, নিট লাভ, ক্যাশ বুক খতিয়ান ও সাবলেজার রিকনসিলিয়েশন স্টেটমেন্ট
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-border space-x-1 sm:space-x-4 overflow-x-auto">
+      {/* Floating Pill Tabs Bar */}
+      <div className="glass-panel p-1.5 rounded-2xl border border-border/60 backdrop-blur-xl flex items-center gap-2 overflow-x-auto shadow-md">
         <button
           onClick={() => setActiveTab("PNL")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "PNL"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-md shadow-emerald-500/20"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
           <TrendingUp className="w-4 h-4" />
-          লাভ-ক্ষতির হিসাব (Profit & Loss)
+          <span>লাভ-ক্ষতির হিসাব (Profit & Loss)</span>
         </button>
 
         <button
           onClick={() => setActiveTab("CASHBOOK")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "CASHBOOK"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-md shadow-emerald-500/20"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
           <Wallet className="w-4 h-4" />
-          ক্যাশ বুক ও লিকুইডিটি (Cashbook)
+          <span>ক্যাশ বুক ও লিকুইডিটি (Cashbook)</span>
         </button>
 
         <button
           onClick={() => setActiveTab("RECONCILIATION")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "RECONCILIATION"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-md shadow-emerald-500/20"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
           <CheckCircle2 className="w-4 h-4" />
-          সাবলেজার রিকনসিলিয়েশন (Audit Reconciliation)
+          <span>সাবলেজার রিকনসিলিয়েশন (Audit)</span>
         </button>
       </div>
 
@@ -160,51 +174,58 @@ export function ReportsView({ pnl, cashbook, reconciliation }: ReportsViewProps)
         <div className="space-y-6">
           {/* Top KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="bg-card p-5 rounded-xl border shadow-xs">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                সর্বমোট আয় (Total Revenue)
+            <div className="glass-card p-5 rounded-2xl border border-border/50 hover:border-emerald-500/40 hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                সর্বমোট আয় (Revenue)
               </span>
-              <div className="mt-2 text-2xl font-bold text-foreground">
+              <div className="mt-2 text-2xl sm:text-3xl font-black text-foreground font-mono">
                 {formatBDT(pnl.revenue.totalRevenue)}
               </div>
-              <span className="text-[11px] text-muted-foreground mt-1 block">
-                পণ্য বিক্রয় + সার্ভিসিং আয়
+              <span className="text-[11px] text-muted-foreground mt-1.5 block font-medium">
+                পণ্য বিক্রয় + সার্ভিসিং রাজস্ব
               </span>
             </div>
 
-            <div className="bg-card p-5 rounded-xl border shadow-xs">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="glass-card p-5 rounded-2xl border border-border/50 hover:border-rose-500/40 hover:shadow-xl hover:shadow-rose-500/5 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-rose-500/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 প্রত্যক্ষ খরচ (Direct Costs)
               </span>
-              <div className="mt-2 text-2xl font-bold text-rose-600 dark:text-rose-400">
+              <div className="mt-2 text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 font-mono">
                 {formatBDT(pnl.directCosts.totalDirectCosts)}
               </div>
-              <span className="text-[11px] text-muted-foreground mt-1 block">
+              <span className="text-[11px] text-muted-foreground mt-1.5 block font-medium">
                 COGS + যন্ত্রাংশ ও সার্ভিস খরচ
               </span>
             </div>
 
-            <div className="bg-card p-5 rounded-xl border shadow-xs">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="glass-card p-5 rounded-2xl border border-border/50 hover:border-emerald-500/40 hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 মোট লাভ (Gross Profit)
               </span>
               <div className="mt-2 flex items-baseline justify-between">
-                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
                   {formatBDT(pnl.grossProfit)}
                 </span>
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
                   {grossMarginPercent}%
                 </span>
               </div>
+              <span className="text-[11px] text-muted-foreground mt-1.5 block font-medium">
+                মোট লাভের মার্জিন
+              </span>
             </div>
 
-            <div className="bg-card p-5 rounded-xl border shadow-xs">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="glass-card p-5 rounded-2xl border border-border/50 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/5 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-cyan-500/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 নিট লাভ (Net Profit)
               </span>
               <div className="mt-2 flex items-baseline justify-between">
                 <span
-                  className={`text-2xl font-bold ${
+                  className={`text-2xl sm:text-3xl font-black font-mono ${
                     pnl.netProfit >= 0
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"
@@ -212,10 +233,13 @@ export function ReportsView({ pnl, cashbook, reconciliation }: ReportsViewProps)
                 >
                   {formatBDT(pnl.netProfit)}
                 </span>
-                <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded-full">
+                <span className="text-xs font-bold bg-muted/60 border border-border/60 px-2.5 py-0.5 rounded-full">
                   {netMarginPercent}% নিট
                 </span>
               </div>
+              <span className="text-[11px] text-muted-foreground mt-1.5 block font-medium">
+                পরিচালন ব্যয় পরবর্তী নিট মুনাফা
+              </span>
             </div>
           </div>
 

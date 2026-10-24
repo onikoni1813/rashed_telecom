@@ -160,61 +160,75 @@ export function StatementsView({
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Non-printable Page Header */}
-      <div className="print:hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <FileText className="w-7 h-7 text-primary" />
-            রানিং ব্যালেন্স লেজার খতিয়ান (Running Balance Statements)
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            গ্রাহক ও সরবরাহকারীর বিস্তারিত ডেবিট, ক্রেডিট ও অবশিষ্ট হিসাব বিবরণী
-          </p>
-        </div>
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+      {/* Elevated Non-printable Command Header */}
+      <div className="print:hidden relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-r from-card/90 via-card/60 to-card/90 p-6 sm:p-7 backdrop-blur-xl shadow-xl">
+        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute right-32 -bottom-20 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
 
-        {statement && (
-          <button
-            onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity shadow-sm"
-          >
-            <Printer className="w-4 h-4" />
-            প্রিন্ট / পিডিএফ (Print Statement)
-          </button>
-        )}
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25 ring-2 ring-white/10 shrink-0">
+              <FileText className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+                  রানিং ব্যালেন্স লেজার খতিয়ান
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-500/10 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400">
+                  Running Balance
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                গ্রাহক ও সরবরাহকারীর বিস্তারিত ডেবিট, ক্রেডিট ও অবশিষ্ট ব্যালেন্স খতিয়ান বিবরণী
+              </p>
+            </div>
+          </div>
+
+          {statement && (
+            <button
+              onClick={handlePrint}
+              className="shimmer-button inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-cyan-500/25 cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>প্রিন্ট / পিডিএফ (Print Statement)</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Non-printable Filter & Selector Bar */}
-      <div className="print:hidden bg-card border border-border rounded-xl p-5 shadow-xs space-y-4">
-        {/* Toggle Mode */}
-        <div className="flex items-center gap-2 border-b border-border pb-4">
+      <div className="print:hidden glass-panel border border-border/60 rounded-3xl p-6 shadow-xl backdrop-blur-xl space-y-5">
+        {/* Floating Pill Toggle Mode */}
+        <div className="flex items-center gap-2 border-b border-border/60 pb-4">
           <button
             onClick={() => {
               setStatementType("CUSTOMER");
               setStatement(null);
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               statementType === "CUSTOMER"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
             }`}
           >
             <Users className="w-4 h-4" />
-            গ্রাহক স্টেটমেন্ট (Customer Ledger)
+            <span>গ্রাহক স্টেটমেন্ট (Customer Ledger)</span>
           </button>
           <button
             onClick={() => {
               setStatementType("SUPPLIER");
               setStatement(null);
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               statementType === "SUPPLIER"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
             }`}
           >
             <Truck className="w-4 h-4" />
-            সরবরাহকারী স্টেটমেন্ট (Supplier Ledger)
+            <span>সরবরাহকারী স্টেটমেন্ট (Supplier Ledger)</span>
           </button>
         </div>
 
@@ -222,13 +236,13 @@ export function StatementsView({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           {statementType === "CUSTOMER" ? (
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1.5">
+              <label className="block text-xs font-bold text-foreground mb-1.5">
                 গ্রাহক নির্বাচন করুন <span className="text-destructive">*</span>
               </label>
               <select
                 value={selectedCustomerId}
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
-                className="w-full text-sm bg-muted/40 border border-border rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full text-xs sm:text-sm bg-card/80 border border-border/70 rounded-xl p-2.5 font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-cyan-500/30"
               >
                 <option value="">-- গ্রাহক বাছাই করুন --</option>
                 {customers.map((c) => (
@@ -240,13 +254,13 @@ export function StatementsView({
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1.5">
+              <label className="block text-xs font-bold text-foreground mb-1.5">
                 সরবরাহকারী নির্বাচন করুন <span className="text-destructive">*</span>
               </label>
               <select
                 value={selectedSupplierId}
                 onChange={(e) => setSelectedSupplierId(e.target.value)}
-                className="w-full text-sm bg-muted/40 border border-border rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full text-xs sm:text-sm bg-card/80 border border-border/70 rounded-xl p-2.5 font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-cyan-500/30"
               >
                 <option value="">-- সরবরাহকারী বাছাই করুন --</option>
                 {suppliers.map((s) => (
@@ -259,26 +273,26 @@ export function StatementsView({
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-foreground mb-1.5">
+            <label className="block text-xs font-bold text-foreground mb-1.5">
               শুরুর তারিখ (Start Date)
             </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full text-sm bg-muted/40 border border-border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full text-xs sm:text-sm bg-card/80 border border-border/70 rounded-xl p-2 font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-cyan-500/30"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-foreground mb-1.5">
+            <label className="block text-xs font-bold text-foreground mb-1.5">
               শেষের তারিখ (End Date)
             </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full text-sm bg-muted/40 border border-border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full text-xs sm:text-sm bg-card/80 border border-border/70 rounded-xl p-2 font-medium text-foreground focus:outline-hidden focus:ring-2 focus:ring-cyan-500/30"
             />
           </div>
 
@@ -286,10 +300,10 @@ export function StatementsView({
             <button
               onClick={fetchStatement}
               disabled={isLoading}
-              className="w-full py-2.5 px-4 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-xs"
+              className="shimmer-button w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-xs sm:text-sm hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 cursor-pointer"
             >
               <Search className="w-4 h-4" />
-              {isLoading ? "লোড হচ্ছে..." : "স্টেটমেন্ট দেখুন"}
+              <span>{isLoading ? "লোড হচ্ছে..." : "স্টেটমেন্ট দেখুন"}</span>
             </button>
           </div>
         </div>

@@ -219,37 +219,49 @@ export function AccountsView({
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-6 rounded-xl border shadow-xs">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <BookOpen className="w-7 h-7 text-primary" />
-            সাধারণ খতিয়ান ও অ্যাকাউন্টিং (General Ledger & Accounts)
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            দ্বি-তরফা দাখিলা পদ্ধতিতে স্বয়ংক্রিয় জার্নাল এন্ট্রি, রেওয়ামিল ও আর্থিক উদ্বৃত্তপত্র।
-          </p>
-        </div>
+      {/* Top Header with Glassmorphism & Ambient Glow */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/60 dark:border-white/10 glass-panel p-6 sm:p-8 shadow-xl">
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 shrink-0">
+              <BookOpen className="w-7 h-7" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+                  সাধারণ খতিয়ান ও অ্যাকাউন্টিং
+                </h1>
+                <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/25 flex items-center gap-1.5 shadow-xs">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> ১০০% ব্যালেন্সড
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                দ্বি-তরফা দাখিলা পদ্ধতিতে স্বয়ংক্রিয় জার্নাল এন্ট্রি, রেওয়ামিল ও আর্থিক উদ্বৃত্তপত্র
+              </p>
+            </div>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsOwnerModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border bg-background text-foreground font-medium text-sm hover:bg-muted transition-colors shadow-xs"
-          >
-            <UserCheck className="w-4 h-4 text-primary" />
-            মালিকের মূলধন / উত্তোলন
-          </button>
+          <div className="flex items-center gap-3 self-end sm:self-auto">
+            <button
+              onClick={() => setIsOwnerModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-bold text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>মালিকের মূলধন / উত্তোলন</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="flex border-b border-border space-x-1 sm:space-x-4 overflow-x-auto">
+      {/* Floating Pill Tabs Navigation */}
+      <div className="p-1.5 bg-muted/60 dark:bg-muted/30 border border-border/80 rounded-2xl backdrop-blur-md flex items-center gap-1.5 overflow-x-auto scrollbar-none shadow-inner">
         <button
           onClick={() => setActiveTab("LEDGER")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
             activeTab === "LEDGER"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-card text-primary shadow-md border border-border/60 scale-[1.01]"
+              : "text-muted-foreground hover:text-foreground hover:bg-card/40"
           }`}
         >
           <BookOpen className="w-4 h-4" />
@@ -258,10 +270,10 @@ export function AccountsView({
 
         <button
           onClick={() => setActiveTab("TRIAL_BALANCE")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
             activeTab === "TRIAL_BALANCE"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-card text-primary shadow-md border border-border/60 scale-[1.01]"
+              : "text-muted-foreground hover:text-foreground hover:bg-card/40"
           }`}
         >
           <Scale className="w-4 h-4" />
@@ -270,10 +282,10 @@ export function AccountsView({
 
         <button
           onClick={() => setActiveTab("BALANCE_SHEET")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
             activeTab === "BALANCE_SHEET"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-card text-primary shadow-md border border-border/60 scale-[1.01]"
+              : "text-muted-foreground hover:text-foreground hover:bg-card/40"
           }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
@@ -282,10 +294,10 @@ export function AccountsView({
 
         <button
           onClick={() => setActiveTab("CHART")}
-          className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${
             activeTab === "CHART"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-card text-primary shadow-md border border-border/60 scale-[1.01]"
+              : "text-muted-foreground hover:text-foreground hover:bg-card/40"
           }`}
         >
           <ArrowRightLeft className="w-4 h-4" />

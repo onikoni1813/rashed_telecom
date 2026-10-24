@@ -189,102 +189,142 @@ export function PosTerminal({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      {/* Left 7 cols: Product Selection Grid */}
-      <div className="lg:col-span-7 space-y-4">
-        {/* Search & Categories Bar */}
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="পণ্য, মডেল, বা বারকোড দিয়ে খুঁজুন..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 text-sm bg-card rounded-xl border border-input focus:outline-hidden focus:ring-2 focus:ring-primary/20 shadow-2xs"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            <button
-              type="button"
-              onClick={() => setSelectedCategory("ALL")}
-              className={`px-3 py-1.5 text-xs rounded-lg font-medium whitespace-nowrap transition-colors border ${
-                selectedCategory === "ALL"
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              সব পণ্য (All)
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 text-xs rounded-lg font-medium whitespace-nowrap transition-colors border ${
-                  selectedCategory === cat
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {filteredProducts.map((p) => {
-            const stockQty = p.stockBalances.reduce((sum, b) => sum + Number(b.quantityOnHand), 0);
-            return (
-              <div
-                key={p.id}
-                onClick={() => addToCart(p)}
-                className="p-3.5 rounded-xl border bg-card hover:border-primary/50 hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between select-none"
-              >
-                <div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold truncate">
-                    {p.brand || p.category.name}
-                  </div>
-                  <div className="font-semibold text-sm text-foreground leading-snug line-clamp-2 mt-0.5">
-                    {p.name}
-                  </div>
-                  <div className="font-mono text-[11px] text-muted-foreground mt-1">{p.sku}</div>
-                </div>
-
-                <div className="mt-3 pt-2 border-t flex items-center justify-between">
-                  <div className="font-bold text-sm text-foreground">
-                    {formatBDT(p.sellingPrice, "en")}
-                  </div>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-sm font-semibold ${
-                      stockQty > 0
-                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-                        : "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300"
-                    }`}
-                  >
-                    স্টক: {stockQty}
-                  </span>
-                </div>
+    <div className="space-y-6">
+      {/* Top POS Command Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/60 dark:border-white/10 glass-panel p-5 sm:p-6 shadow-xl">
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-blue-500/15 blur-3xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <ShoppingCart className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-foreground">
+                  POS দ্রুত বিক্রয় কাউন্টার
+                </h1>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                  কাউন্টার ১ • লাইভ
+                </span>
               </div>
-            );
-          })}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                বারকোড স্ক্যান বা পণ্য সার্চ করে দ্রুত ক্যাশ মেমো ও স্প্লিট পেমেন্ট সম্পন্ন করুন
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto text-xs">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-background/80 border border-border font-semibold shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>ক্যাশ ড্রয়ার: সক্রিয়</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Right 5 cols: Cart, Customer & Checkout */}
-      <div className="lg:col-span-5 rounded-2xl border bg-card shadow-xs p-5 space-y-5 sticky top-20">
-        <div className="flex items-center justify-between border-b pb-3">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-primary" />
-            <h2 className="font-bold text-base text-foreground">বিক্রয় কার্ট (Cart)</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left 7 cols: Product Selection Grid */}
+        <div className="lg:col-span-7 space-y-4">
+          {/* Search & Categories Bar */}
+          <div className="glass-panel p-4 rounded-2xl shadow-sm border border-border/80 space-y-3">
+            <div className="relative">
+              <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="পণ্য, মডেল, বা বারকোড দিয়ে খুঁজুন..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-background/80 rounded-xl border border-border focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary shadow-xs transition-all font-medium"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory("ALL")}
+                className={`px-3.5 py-1.5 text-xs rounded-xl font-bold whitespace-nowrap transition-all border ${
+                  selectedCategory === "ALL"
+                    ? "bg-gradient-to-r from-primary to-indigo-600 text-white border-white/20 shadow-md shadow-primary/25 scale-[1.02]"
+                    : "bg-card text-muted-foreground hover:bg-muted/70 border-border"
+                }`}
+              >
+                সব পণ্য ({products.length})
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3.5 py-1.5 text-xs rounded-xl font-bold whitespace-nowrap transition-all border ${
+                    selectedCategory === cat
+                      ? "bg-gradient-to-r from-primary to-indigo-600 text-white border-white/20 shadow-md shadow-primary/25 scale-[1.02]"
+                      : "bg-card text-muted-foreground hover:bg-muted/70 border-border"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-            {cart.reduce((s, it) => s + it.quantity, 0)} টি আইটেম
-          </span>
+
+          {/* Products Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+            {filteredProducts.map((p) => {
+              const stockQty = p.stockBalances.reduce((sum, b) => sum + Number(b.quantityOnHand), 0);
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => addToCart(p)}
+                  className="glass-card p-4 rounded-2xl border border-border/80 hover:border-primary/50 transition-all cursor-pointer flex flex-col justify-between select-none group active:scale-95 shadow-xs"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold truncate">
+                        {p.brand || p.category.name}
+                      </span>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                          stockQty > 0
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                            : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                        }`}
+                      >
+                        মজুদ: {stockQty}
+                      </span>
+                    </div>
+                    <div className="font-bold text-sm text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                      {p.name}
+                    </div>
+                    <div className="font-mono text-[11px] text-muted-foreground mt-1">{p.sku}</div>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between">
+                    <div className="font-black text-sm text-foreground">
+                      {formatBDT(p.sellingPrice, "en")}
+                    </div>
+                    <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs group-hover:bg-primary group-hover:text-white transition-colors">
+                      +
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Right 5 cols: Cart, Customer & Checkout */}
+        <div className="lg:col-span-5 rounded-3xl glass-panel shadow-xl border border-border/80 p-5 sm:p-6 space-y-5 sticky top-20">
+          <div className="flex items-center justify-between border-b border-border/70 pb-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <ShoppingCart className="w-4 h-4" />
+              </div>
+              <h2 className="font-black text-base text-foreground">বিক্রয় কার্ট (Cart)</h2>
+            </div>
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+              {cart.reduce((s, it) => s + it.quantity, 0)} টি আইটেম
+            </span>
+          </div>
 
         {/* Customer Select */}
         <div className="space-y-1.5">
@@ -473,59 +513,60 @@ export function PosTerminal({
           type="button"
           disabled={cart.length === 0 || loading}
           onClick={handleCheckout}
-          className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-xs hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-2xl text-white font-extrabold text-sm shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 shimmer-button active:scale-95 cursor-pointer"
         >
-          <CreditCard className="w-4 h-4" />
-          <span>{loading ? "বিক্রয় সম্পন্ন হচ্ছে..." : "চেকআউট ও রসিদ তৈরি"}</span>
+          <CreditCard className="w-5 h-5" />
+          <span>{loading ? "বিক্রয় ও ক্যাশমেমো তৈরি হচ্ছে..." : "চেকআউট ও রসিদ তৈরি (F1)"}</span>
         </button>
       </div>
+    </div>
 
-      {/* Invoice Success Receipt Modal */}
+    {/* Invoice Success Receipt Modal */}
       {completedInvoice && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card w-full max-w-sm rounded-2xl border p-6 space-y-4 shadow-xl">
-            <div className="text-center space-y-1">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#faf8f5] dark:bg-[#f5f2eb] text-zinc-900 w-full max-w-sm rounded-3xl border border-zinc-300 p-6 space-y-5 shadow-2xl font-mono text-xs select-none">
+            <div className="text-center space-y-1.5 pb-3 border-b border-dashed border-zinc-400">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h3 className="font-bold text-lg text-foreground">বিক্রয় সম্পন্ন হয়েছে!</h3>
-              <p className="text-xs text-muted-foreground font-mono">
-                ইনভয়েস: {completedInvoice.invoiceNumber}
+              <h3 className="font-black text-lg text-zinc-950 uppercase">বিক্রয় সম্পন্ন হয়েছে!</h3>
+              <p className="text-xs text-zinc-600 font-bold">
+                মেমো নং: {completedInvoice.invoiceNumber}
               </p>
             </div>
 
-            <div className="p-3 bg-muted/40 rounded-xl space-y-2 text-xs border">
+            <div className="p-4 bg-white/80 rounded-2xl space-y-2 border border-zinc-300/80">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">সর্বমোট মূল্য</span>
-                <span className="font-semibold">{formatBDT(completedInvoice.totalAmount, "en")}</span>
+                <span className="text-zinc-600">সর্বমোট মূল্য:</span>
+                <span className="font-extrabold text-sm text-zinc-950">{formatBDT(completedInvoice.totalAmount, "en")}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">পরিশোধকৃত অর্থ</span>
-                <span className="font-semibold text-emerald-600">
+                <span className="text-zinc-600">পরিশোধিত নগদ:</span>
+                <span className="font-extrabold text-emerald-700">
                   {formatBDT(completedInvoice.paidAmount, "en")}
                 </span>
               </div>
               {completedInvoice.dueAmount > 0 && (
-                <div className="flex justify-between font-bold text-rose-600">
-                  <span>বকেয়া</span>
+                <div className="flex justify-between font-bold text-rose-600 pt-1 border-t border-dashed border-zinc-300">
+                  <span>বকেয়া পরিমাণ:</span>
                   <span>{formatBDT(completedInvoice.dueAmount, "en")}</span>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="flex-1 py-2 rounded-lg border bg-background font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-muted"
+                className="flex-1 py-3 rounded-xl border border-zinc-400 bg-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-100 shadow-xs active:scale-95 transition-all"
               >
-                <Printer className="w-3.5 h-3.5" />
-                <span>প্রিন্ট করুন</span>
+                <Printer className="w-4 h-4 text-zinc-700" />
+                <span>প্রিন্ট রসিদ</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCompletedInvoice(null)}
-                className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-xs hover:bg-primary/90"
+                className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary/90 shadow-md shadow-primary/20 active:scale-95 transition-all"
               >
                 নতুন বিক্রয়
               </button>

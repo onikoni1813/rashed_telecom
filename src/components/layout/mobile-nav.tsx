@@ -7,8 +7,8 @@ import {
   Home,
   ShoppingCart,
   Wrench,
-  Warehouse,
-  Menu,
+  Package,
+  Settings,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,16 +17,16 @@ import { getDictionary } from "@/lib/i18n";
 
 interface MobileNavItem {
   href: string;
-  labelKey: "home" | "pos" | "servicing" | "inventory" | "more";
+  label: string;
   icon: LucideIcon;
 }
 
 const MOBILE_ITEMS: MobileNavItem[] = [
-  { href: "/app", labelKey: "home", icon: Home },
-  { href: "/app/pos", labelKey: "pos", icon: ShoppingCart },
-  { href: "/app/service", labelKey: "servicing", icon: Wrench },
-  { href: "/app/inventory", labelKey: "inventory", icon: Warehouse },
-  { href: "/app/settings", labelKey: "more", icon: Menu },
+  { href: "/app", label: "হোম", icon: Home },
+  { href: "/app/pos", label: "POS", icon: ShoppingCart },
+  { href: "/app/service", label: "সার্ভিসিং", icon: Wrench },
+  { href: "/app/products", label: "পণ্য", icon: Package },
+  { href: "/app/settings", label: "সেটিংস", icon: Settings },
 ];
 
 interface MobileNavProps {
@@ -35,10 +35,9 @@ interface MobileNavProps {
 
 export function MobileNav({ locale = "bn" }: MobileNavProps) {
   const pathname = usePathname();
-  const dict = getDictionary(locale);
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t h-16 flex items-center justify-around px-2 shadow-lg safe-area-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/90 backdrop-blur-2xl border-t border-border/80 h-16 flex items-center justify-around px-2 shadow-2xl">
       {MOBILE_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive =
@@ -51,13 +50,28 @@ export function MobileNav({ locale = "bn" }: MobileNavProps) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center flex-1 py-1.5 gap-1 transition-colors select-none",
-              isActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              "relative flex flex-col items-center justify-center flex-1 py-1 gap-1 transition-all select-none active:scale-90",
+              isActive ? "text-primary font-black" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Icon className={cn("w-5 h-5", isActive ? "stroke-[2.5px]" : "stroke-[1.75px]")} />
-            <span className="text-[10px] leading-none truncate max-w-[64px]">
-              {dict.nav[item.labelKey]}
+            {/* Active Top Glow Pip */}
+            {isActive && (
+              <span className="absolute -top-1 w-6 h-1 rounded-full bg-gradient-to-r from-primary to-indigo-600 shadow-sm shadow-primary/50 animate-pulse" />
+            )}
+
+            <div
+              className={cn(
+                "w-9 h-7 rounded-xl flex items-center justify-center transition-all",
+                isActive
+                  ? "bg-primary/10 text-primary scale-110 shadow-xs"
+                  : "hover:bg-muted/50"
+              )}
+            >
+              <Icon className={cn("w-5 h-5", isActive ? "stroke-[2.5px]" : "stroke-[1.75px]")} />
+            </div>
+
+            <span className="text-[11px] font-bold leading-tight truncate">
+              {item.label}
             </span>
           </Link>
         );

@@ -940,7 +940,7 @@ export function SettingsView({ shopId, initialSettings }: SettingsViewProps) {
                 <span className="absolute right-4 top-3 text-xs font-semibold text-muted-foreground">৳ BDT</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                এই সীমার অতিরিক্ত ছাড় দিলে ইনভয়েসটি অটোমেটিক ওনারের 'অনুমোদন কেন্দ্র' (Approvals)-এ জমা হবে।
+                এই সীমার অতিরিক্ত ছাড় দিলে ইনভয়েসটি অটোমেটিক ওনারের &apos;অনুমোদন কেন্দ্র&apos; (Approvals)-এ জমা হবে।
               </p>
             </div>
 
