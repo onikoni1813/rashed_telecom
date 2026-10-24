@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -129,22 +130,29 @@ export async function main() {
   }
 
   console.log("Seeding system roles & role-permissions...");
+  const roleMap = new Map<string, string>();
+
   for (const [roleName, roleData] of Object.entries(SYSTEM_ROLES)) {
-    // System roles have null shopId
-    const role = await prisma.role.upsert({
-      where: {
-        shopId_name: {
-          shopId: null as unknown as string,
-          name: roleName,
-        },
-      },
-      update: { description: roleData.description, isSystem: true },
-      create: {
-        name: roleName,
-        description: roleData.description,
-        isSystem: true,
-      },
+    let role = await prisma.role.findFirst({
+      where: { name: roleName, isSystem: true },
     });
+
+    if (!role) {
+      role = await prisma.role.create({
+        data: {
+          name: roleName,
+          description: roleData.description,
+          isSystem: true,
+        },
+      });
+    } else {
+      role = await prisma.role.update({
+        where: { id: role.id },
+        data: { description: roleData.description },
+      });
+    }
+
+    roleMap.set(roleName, role.id);
 
     for (const permKey of roleData.permissions) {
       const permissionId = permissionMap.get(permKey);
@@ -182,7 +190,48 @@ export async function main() {
     },
   });
 
-  console.log(`Phase 1 Seed completed successfully. Default shop ID: ${shop.id}`);
+  console.log("Seeding demo admin user...");
+  const adminUser = await prisma.user.upsert({
+    where: { id: "00000000-0000-0000-0000-000000000001" },
+    update: {
+      email: "admin@rashedtelecom.local",
+      fullName: "Rashed (Admin)",
+      phone: "01700000000",
+    },
+    create: {
+      id: "00000000-0000-0000-0000-000000000001",
+      email: "admin@rashedtelecom.local",
+      fullName: "Rashed (Admin)",
+      phone: "01700000000",
+      isActive: true,
+    },
+  });
+
+  const ownerRoleId = roleMap.get("OWNER");
+  if (ownerRoleId) {
+    await prisma.shopMember.upsert({
+      where: {
+        shopId_userId: {
+          shopId: shop.id,
+          userId: adminUser.id,
+        },
+      },
+      update: {
+        roleId: ownerRoleId,
+        isActive: true,
+      },
+      create: {
+        shopId: shop.id,
+        userId: adminUser.id,
+        roleId: ownerRoleId,
+        isActive: true,
+      },
+    });
+  }
+
+  console.log(`Phase 1 Seed completed successfully!`);
+  console.log(`- Shop ID: ${shop.id} (${shop.name})`);
+  console.log(`- Admin User ID: ${adminUser.id} (${adminUser.email})`);
 }
 
 if (process.env.NODE_ENV !== "test") {

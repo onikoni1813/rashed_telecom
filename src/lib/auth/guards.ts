@@ -26,13 +26,13 @@ export interface ShopMemberDetails {
 export async function requireAuth(req: Request): Promise<AuthenticatedUser> {
   const authHeader = req.headers.get("authorization");
 
-  // In test environments, allow simulated authentication via test header
-  if (process.env.NODE_ENV === "test") {
+  // In development and test environments, allow simulated authentication via header
+  if (process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development") {
     const testUserId = req.headers.get("x-test-user-id");
     if (testUserId) {
       return {
         id: testUserId,
-        email: req.headers.get("x-test-user-email") || "test@rashedtelecom.local",
+        email: req.headers.get("x-test-user-email") || "admin@rashedtelecom.local",
       };
     }
   }
