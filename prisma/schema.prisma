@@ -1,5 +1,5 @@
 // Prisma Schema for Rashed Telecom Shop Management PWA
-// Architecture defined in Master_plan.md (Sections 3, 6, 11, 12)
+// Architecture defined in Master_plan.md (Sections 3, 6, 7, 8, 11, 12)
 
 generator client {
   provider = "prisma-client-js"
@@ -43,6 +43,15 @@ model Shop {
   stockCounts     StockCount[]
   purchaseReturns PurchaseReturn[]
 
+  // Phase 3 POS, Sales & Accounting relations
+  customers       Customer[]
+  accounts        Account[]
+  journalEntries  JournalEntry[]
+  cashSessions    CashSession[]
+  sales           Sale[]
+  payments        Payment[]
+  salesReturns    SalesReturn[]
+
   @@map("shops")
 }
 
@@ -60,13 +69,17 @@ model User {
   staffProfiles  StaffProfile[]
   auditActions   AuditLog[]      @relation("ActorAuditLogs")
   stockMovements StockMovement[]
+  cashSessions   CashSession[]
+  sales          Sale[]
+  payments       Payment[]
+  salesReturns   SalesReturn[]
 
   @@map("users")
 }
 
 model Role {
   id          String   @id @default(uuid()) @db.Uuid
-  shopId      String?  @map("shop_id") @db.Uuid // Nullable for global system roles
+  shopId      String?  @map("shop_id") @db.Uuid
   name        String
   description String?
   isSystem    Boolean  @default(false) @map("is_system")
@@ -84,9 +97,9 @@ model Role {
 
 model Permission {
   id          String   @id @default(uuid()) @db.Uuid
-  key         String   @unique // e.g. 'products.view', 'sales.create'
+  key         String   @unique
   description String
-  module      String   // e.g. 'products', 'sales', 'service', 'accounting'
+  module      String
   createdAt   DateTime @default(now()) @map("created_at")
 
   rolePermissions RolePermission[]
@@ -137,7 +150,7 @@ model StaffProfile {
   userId           String    @map("user_id") @db.Uuid
   employeeCode     String    @map("employee_code")
   joiningDate      DateTime  @map("joining_date")
-  compensationType String    @default("SALARY") @map("compensation_type") // SALARY, COMMISSION, HOURLY
+  compensationType String    @default("SALARY") @map("compensation_type")
   baseSalary       Decimal   @default(0) @map("base_salary") @db.Decimal(12, 2)
   isActive         Boolean   @default(true) @map("is_active")
   createdAt        DateTime  @default(now()) @map("created_at")
@@ -162,7 +175,7 @@ model Category {
   shopId    String   @map("shop_id") @db.Uuid
   name      String
   parentId  String?  @map("parent_id") @db.Uuid
-  type      String   @default("ACCESSORY") // PHONE, ACCESSORY, PART, CONSUMABLE
+  type      String   @default("ACCESSORY")
   createdAt DateTime @default(now()) @map("created_at")
 
   shop     Shop       @relation(fields: [shopId], references: [id], onDelete: Restrict)
@@ -203,6 +216,8 @@ model Product {
   goodsReceiptItems  GoodsReceiptItem[]
   stockCountItems    StockCountItem[]
   purchaseReturnItems PurchaseReturnItem[]
+  saleItems          SaleItem[]
+  salesReturnItems   SalesReturnItem[]
 
   @@unique([shopId, sku])
   @@index([shopId])
@@ -214,11 +229,11 @@ model Product {
 model ProductVariant {
   id           String   @id @default(uuid()) @db.Uuid
   productId    String   @map("product_id") @db.Uuid
-  name         String   // e.g. "6GB/128GB - Phantom Black"
+  name         String
   sku          String?
   costPrice    Decimal? @map("cost_price") @db.Decimal(12, 2)
   sellingPrice Decimal? @map("selling_price") @db.Decimal(12, 2)
-  attributes   Json?    @default("{}") // color, storage, ram, etc.
+  attributes   Json?    @default("{}")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -230,6 +245,8 @@ model ProductVariant {
   goodsReceiptItems  GoodsReceiptItem[]
   stockCountItems    StockCountItem[]
   purchaseReturnItems PurchaseReturnItem[]
+  saleItems          SaleItem[]
+  salesReturnItems   SalesReturnItem[]
 
   @@index([productId])
   @@map("product_variants")
@@ -248,10 +265,11 @@ model SerialNumber {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  shop          Shop            @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  product       Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
-  variant       ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
-  purchaseOrder PurchaseOrder?  @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  shop          Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  product       Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant       ProductVariant?  @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  purchaseOrder PurchaseOrder?   @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  saleSerials   SaleItemSerial[]
 
   @@index([shopId, status])
   @@index([shopId, imei1])
@@ -289,7 +307,7 @@ model Supplier {
 model Location {
   id        String   @id @default(uuid()) @db.Uuid
   shopId    String   @map("shop_id") @db.Uuid
-  name      String   // e.g. "Main Shop Floor", "Backstore Warehouse"
+  name      String
   isDefault Boolean  @default(false) @map("is_default")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -309,7 +327,7 @@ model PurchaseOrder {
   shopId      String    @map("shop_id") @db.Uuid
   supplierId  String    @map("supplier_id") @db.Uuid
   poNumber    String    @map("po_number")
-  status      String    @default("DRAFT") // DRAFT, ORDERED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
+  status      String    @default("DRAFT")
   totalAmount Decimal   @default(0) @map("total_amount") @db.Decimal(12, 2)
   orderedAt   DateTime  @default(now()) @map("ordered_at")
   expectedAt  DateTime? @map("expected_at")
@@ -413,10 +431,10 @@ model StockMovement {
   productId     String   @map("product_id") @db.Uuid
   variantId     String?  @map("variant_id") @db.Uuid
   locationId    String   @map("location_id") @db.Uuid
-  movementType  String   @map("movement_type") // PURCHASE_RECEIPT, SALE, SERVICE_CONSUMPTION, ADJUSTMENT_IN, ADJUSTMENT_OUT, PURCHASE_RETURN, SALES_RETURN
-  referenceType String?  @map("reference_type") // GoodsReceipt, Sale, ServiceJob, StockAdjustment
+  movementType  String   @map("movement_type")
+  referenceType String?  @map("reference_type")
   referenceId   String?  @map("reference_id")
-  quantity      Decimal  @db.Decimal(12, 2) // positive for additions, negative for deductions
+  quantity      Decimal  @db.Decimal(12, 2)
   unitCost      Decimal  @default(0) @map("unit_cost") @db.Decimal(12, 2)
   balanceAfter  Decimal  @default(0) @map("balance_after") @db.Decimal(12, 2)
   reason        String?
@@ -441,7 +459,7 @@ model StockCount {
   shopId     String   @map("shop_id") @db.Uuid
   locationId String   @map("location_id") @db.Uuid
   countName  String   @map("count_name")
-  status     String   @default("OPEN") // OPEN, COMPLETED, CANCELLED
+  status     String   @default("OPEN")
   startedAt  DateTime @default(now()) @map("started_at")
   closedAt   DateTime? @map("closed_at")
   notes      String?
@@ -462,7 +480,7 @@ model StockCountItem {
   variantId       String?  @map("variant_id") @db.Uuid
   systemQuantity  Decimal  @map("system_quantity") @db.Decimal(12, 2)
   countedQuantity Decimal  @map("counted_quantity") @db.Decimal(12, 2)
-  discrepancy     Decimal  @default(0) @db.Decimal(12, 2) // countedQuantity - systemQuantity
+  discrepancy     Decimal  @default(0) @db.Decimal(12, 2)
   createdAt       DateTime @default(now()) @map("created_at")
 
   stockCount StockCount      @relation(fields: [stockCountId], references: [id], onDelete: Cascade)
@@ -511,6 +529,254 @@ model PurchaseReturnItem {
 }
 
 // ==============================================================================
+// 6.4 POS, SALES, PAYMENTS AND RETURNS
+// ==============================================================================
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  shopId    String   @map("shop_id") @db.Uuid
+  name      String
+  phone     String
+  email     String?
+  address   String?
+  totalDue  Decimal  @default(0) @map("total_due") @db.Decimal(12, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shop         Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  sales        Sale[]
+  payments     Payment[]
+  salesReturns SalesReturn[]
+
+  @@unique([shopId, phone])
+  @@index([shopId])
+  @@map("customers")
+}
+
+model CashSession {
+  id                 String    @id @default(uuid()) @db.Uuid
+  shopId             String    @map("shop_id") @db.Uuid
+  cashierId          String    @map("cashier_id") @db.Uuid
+  openingTime        DateTime  @default(now()) @map("opening_time")
+  closingTime        DateTime? @map("closing_time")
+  openingCash        Decimal   @default(0) @map("opening_cash") @db.Decimal(12, 2)
+  closingCashSystem  Decimal   @default(0) @map("closing_cash_system") @db.Decimal(12, 2)
+  closingCashActual  Decimal   @default(0) @map("closing_cash_actual") @db.Decimal(12, 2)
+  discrepancy        Decimal   @default(0) @db.Decimal(12, 2)
+  status             String    @default("OPEN") // OPEN, CLOSED
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  cashier User   @relation(fields: [cashierId], references: [id], onDelete: Restrict)
+  sales   Sale[]
+
+  @@index([shopId, status])
+  @@index([cashierId])
+  @@map("cash_sessions")
+}
+
+model Sale {
+  id            String   @id @default(uuid()) @db.Uuid
+  shopId        String   @map("shop_id") @db.Uuid
+  customerId    String?  @map("customer_id") @db.Uuid
+  cashierId     String   @map("cashier_id") @db.Uuid
+  cashSessionId String?  @map("cash_session_id") @db.Uuid
+  invoiceNumber String   @map("invoice_number")
+  subtotal      Decimal  @default(0) @db.Decimal(12, 2)
+  discount      Decimal  @default(0) @db.Decimal(12, 2)
+  totalAmount   Decimal  @default(0) @map("total_amount") @db.Decimal(12, 2)
+  paidAmount    Decimal  @default(0) @map("paid_amount") @db.Decimal(12, 2)
+  dueAmount     Decimal  @default(0) @map("due_amount") @db.Decimal(12, 2)
+  paymentStatus String   @default("PAID") @map("payment_status") // PAID, PARTIALLY_PAID, DUE
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  shop               Shop                @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  customer           Customer?           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  cashier            User                @relation(fields: [cashierId], references: [id], onDelete: Restrict)
+  cashSession        CashSession?        @relation(fields: [cashSessionId], references: [id], onDelete: SetNull)
+  items              SaleItem[]
+  paymentAllocations PaymentAllocation[]
+  returns            SalesReturn[]
+
+  @@unique([shopId, invoiceNumber])
+  @@index([shopId, createdAt])
+  @@index([customerId])
+  @@index([cashierId])
+  @@map("sales")
+}
+
+model SaleItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  saleId     String   @map("sale_id") @db.Uuid
+  productId  String   @map("product_id") @db.Uuid
+  variantId  String?  @map("variant_id") @db.Uuid
+  quantity   Int
+  unitPrice  Decimal  @map("unit_price") @db.Decimal(12, 2)
+  unitCost   Decimal  @map("unit_cost") @db.Decimal(12, 2)
+  subtotal   Decimal  @db.Decimal(12, 2)
+
+  sale        Sale              @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant     ProductVariant?   @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  serials     SaleItemSerial[]
+  returnItems SalesReturnItem[]
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+model SaleItemSerial {
+  id             String @id @default(uuid()) @db.Uuid
+  saleItemId     String @map("sale_item_id") @db.Uuid
+  serialNumberId String @map("serial_number_id") @db.Uuid
+
+  saleItem     SaleItem     @relation(fields: [saleItemId], references: [id], onDelete: Cascade)
+  serialNumber SerialNumber @relation(fields: [serialNumberId], references: [id], onDelete: Restrict)
+
+  @@unique([saleItemId, serialNumberId])
+  @@map("sale_item_serials")
+}
+
+model Payment {
+  id              String   @id @default(uuid()) @db.Uuid
+  shopId          String   @map("shop_id") @db.Uuid
+  paymentNumber   String   @map("payment_number")
+  customerId      String?  @map("customer_id") @db.Uuid
+  amount          Decimal  @db.Decimal(12, 2)
+  paymentMethod   String   @map("payment_method") // CASH, BANK, BKASH, NAGAD, ROCKET
+  referenceNumber String?  @map("reference_number")
+  receivedBy      String   @map("received_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  shop        Shop                @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  customer    Customer?           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  cashier     User                @relation(fields: [receivedBy], references: [id], onDelete: Restrict)
+  allocations PaymentAllocation[]
+
+  @@unique([shopId, paymentNumber])
+  @@index([shopId, createdAt])
+  @@index([customerId])
+  @@map("payments")
+}
+
+model PaymentAllocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  paymentId String   @map("payment_id") @db.Uuid
+  saleId    String   @map("sale_id") @db.Uuid
+  amount    Decimal  @db.Decimal(12, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Restrict)
+
+  @@index([paymentId])
+  @@index([saleId])
+  @@map("payment_allocations")
+}
+
+model SalesReturn {
+  id           String   @id @default(uuid()) @db.Uuid
+  shopId       String   @map("shop_id") @db.Uuid
+  saleId       String   @map("sale_id") @db.Uuid
+  customerId   String?  @map("customer_id") @db.Uuid
+  returnNumber String   @map("return_number")
+  refundAmount Decimal  @default(0) @map("refund_amount") @db.Decimal(12, 2)
+  returnReason String?  @map("return_reason")
+  createdBy    String   @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  shop     Shop              @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  sale     Sale              @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  customer Customer?         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  creator  User              @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  items    SalesReturnItem[]
+
+  @@unique([shopId, returnNumber])
+  @@index([shopId])
+  @@index([saleId])
+  @@map("sales_returns")
+}
+
+model SalesReturnItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  salesReturnId   String   @map("sales_return_id") @db.Uuid
+  saleItemId      String   @map("sale_item_id") @db.Uuid
+  productId       String   @map("product_id") @db.Uuid
+  variantId       String?  @map("variant_id") @db.Uuid
+  quantity        Int
+  refundUnitPrice Decimal  @map("refund_unit_price") @db.Decimal(12, 2)
+  condition       String   @default("GOOD") // GOOD, DEFECTIVE
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  salesReturn SalesReturn     @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
+  saleItem    SaleItem        @relation(fields: [saleItemId], references: [id], onDelete: Restrict)
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  @@index([salesReturnId])
+  @@map("sales_return_items")
+}
+
+// ==============================================================================
+// 6.6 FINANCE AND GENERAL LEDGER
+// ==============================================================================
+
+model Account {
+  id        String   @id @default(uuid()) @db.Uuid
+  shopId    String   @map("shop_id") @db.Uuid
+  code      String   // e.g. 1000, 1010, 1100, 1200, 4000, 5000
+  name      String
+  type      String   // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  shop         Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  journalLines JournalLine[]
+
+  @@unique([shopId, code])
+  @@index([shopId, type])
+  @@map("accounts")
+}
+
+model JournalEntry {
+  id          String   @id @default(uuid()) @db.Uuid
+  shopId      String   @map("shop_id") @db.Uuid
+  sourceType  String   @map("source_type") // SALE, PAYMENT, SALES_RETURN, PURCHASE_RECEIPT
+  sourceId    String   @map("source_id")
+  entryDate   DateTime @default(now()) @map("entry_date")
+  status      String   @default("POSTED") // POSTED, REVERSED
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  shop  Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  lines JournalLine[]
+
+  @@index([shopId, entryDate])
+  @@index([sourceType, sourceId])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id             String  @id @default(uuid()) @db.Uuid
+  journalEntryId String  @map("journal_entry_id") @db.Uuid
+  accountId      String  @map("account_id") @db.Uuid
+  debit          Decimal @default(0) @db.Decimal(12, 2)
+  credit         Decimal @default(0) @db.Decimal(12, 2)
+  description    String?
+
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      Account      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@map("journal_lines")
+}
+
+// ==============================================================================
 // 6.7 AUDIT LOGS AND IDEMPOTENCY
 // ==============================================================================
 
@@ -518,8 +784,8 @@ model AuditLog {
   id          String   @id @default(uuid()) @db.Uuid
   shopId      String   @map("shop_id") @db.Uuid
   actorId     String   @map("actor_id") @db.Uuid
-  action      String   // e.g. 'member.create', 'role.assign', 'settings.update'
-  entityType  String   @map("entity_type") // e.g. 'ShopMember', 'StaffProfile'
+  action      String
+  entityType  String   @map("entity_type")
   entityId    String   @map("entity_id")
   reason      String?
   beforeState Json?    @map("before_state")
@@ -542,7 +808,7 @@ model IdempotencyKey {
   shopId       String    @map("shop_id") @db.Uuid
   key          String
   requestHash  String    @map("request_hash")
-  status       String    @default("PENDING") // PENDING, COMPLETED, FAILED
+  status       String    @default("PENDING")
   statusCode   Int?      @map("status_code")
   responseBody Json?     @map("response_body")
   createdAt    DateTime  @default(now()) @map("created_at")

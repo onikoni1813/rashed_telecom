@@ -164,3 +164,6 @@ export function formatDhakaDate(
   const formatted = new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-US", options).format(d);
   return formatted;
 }
+
+export const formatDateTimeDhaka = formatDhakaDate;
+

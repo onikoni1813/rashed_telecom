@@ -113,14 +113,18 @@ export async function executeWithIdempotency<T>({
     return { ...result, cached: false };
   } catch (error) {
     // Delete or mark FAILED on error so clients can retry safely
-    await prisma.idempotencyKey.delete({
-      where: {
-        shopId_key: {
-          shopId,
-          key: idempotencyKey,
+    try {
+      await prisma.idempotencyKey.delete({
+        where: {
+          shopId_key: {
+            shopId,
+            key: idempotencyKey,
+          },
         },
-      },
-    }).catch(() => {});
+      });
+    } catch {
+      // Ignore cleanup errors
+    }
 
     throw error;
   }

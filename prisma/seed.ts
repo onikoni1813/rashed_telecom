@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -112,6 +112,24 @@ export const SYSTEM_ROLES: Record<string, { description: string; permissions: st
   },
 };
 
+export const STARTER_ACCOUNTS = [
+  { code: "1000", name: "Cash on Hand", type: "ASSET" },
+  { code: "1010", name: "Bank / MFS (bKash/Nagad)", type: "ASSET" },
+  { code: "1100", name: "Accounts Receivable (Customer Dues)", type: "ASSET" },
+  { code: "1200", name: "Inventory", type: "ASSET" },
+  { code: "2000", name: "Accounts Payable (Supplier Payables)", type: "LIABILITY" },
+  { code: "2100", name: "Customer Advances", type: "LIABILITY" },
+  { code: "3000", name: "Owner Capital", type: "EQUITY" },
+  { code: "3100", name: "Owner Drawings", type: "EQUITY" },
+  { code: "4000", name: "Product Sales", type: "REVENUE" },
+  { code: "4100", name: "Service Revenue", type: "REVENUE" },
+  { code: "5000", name: "Cost of Goods Sold (COGS)", type: "EXPENSE" },
+  { code: "5100", name: "Direct Service Costs", type: "EXPENSE" },
+  { code: "6000", name: "Rent & Utilities", type: "EXPENSE" },
+  { code: "6100", name: "Salaries & Commissions", type: "EXPENSE" },
+  { code: "6200", name: "Other Operating Expenses", type: "EXPENSE" },
+];
+
 export async function main() {
   console.log("Seeding system permissions...");
   const permissionMap = new Map<string, string>();
@@ -185,7 +203,7 @@ export async function main() {
       timezone: "Asia/Dhaka",
       settings: {
         offlineSyncEnabled: true,
-        receiptHeader: "রাশেদ টেলিকম\nমোবাইল ও সার্ভিসিং সেন্টার",
+        receiptHeader: "রাশেদ টেলিকম\nমোবাইল ও সার্ভিসিং সেন্টার\nফোন: 01700000000",
       },
     },
   });
@@ -246,29 +264,54 @@ export async function main() {
   });
 
   console.log("Seeding standard categories...");
-  const categories = [
-    { name: "Smartphones", type: "PHONE" },
-    { name: "Mobile Accessories", type: "ACCESSORY" },
-    { name: "Display & Replacement Parts", type: "PART" },
-    { name: "Service Consumables", type: "CONSUMABLE" },
-  ];
+  const catPhone = await prisma.category.upsert({
+    where: { shopId_name: { shopId: shop.id, name: "Smartphones" } },
+    update: { type: "PHONE" },
+    create: { shopId: shop.id, name: "Smartphones", type: "PHONE" },
+  });
 
-  for (const cat of categories) {
-    await prisma.category.upsert({
+  const catAccessory = await prisma.category.upsert({
+    where: { shopId_name: { shopId: shop.id, name: "Mobile Accessories" } },
+    update: { type: "ACCESSORY" },
+    create: { shopId: shop.id, name: "Mobile Accessories", type: "ACCESSORY" },
+  });
+
+  console.log("Seeding chart of accounts...");
+  for (const acc of STARTER_ACCOUNTS) {
+    await prisma.account.upsert({
       where: {
-        shopId_name: {
+        shopId_code: {
           shopId: shop.id,
-          name: cat.name,
+          code: acc.code,
         },
       },
-      update: { type: cat.type },
+      update: { name: acc.name, type: acc.type },
       create: {
         shopId: shop.id,
-        name: cat.name,
-        type: cat.type,
+        code: acc.code,
+        name: acc.name,
+        type: acc.type,
       },
     });
   }
+
+  console.log("Seeding demo regular customer...");
+  const customer = await prisma.customer.upsert({
+    where: {
+      shopId_phone: {
+        shopId: shop.id,
+        phone: "01712345678",
+      },
+    },
+    update: {},
+    create: {
+      shopId: shop.id,
+      name: "Md. Al-Amin",
+      phone: "01712345678",
+      email: "alamin@gmail.com",
+      address: "Dhanmondi, Dhaka",
+    },
+  });
 
   console.log("Seeding sample verified supplier...");
   await prisma.supplier.upsert({
@@ -289,9 +332,132 @@ export async function main() {
     },
   });
 
-  console.log(`Phase 1 & 2 Seed completed successfully!`);
+  console.log("Seeding verified stock items for POS checkout...");
+  // 1. Samsung Galaxy A15
+  const productPhone = await prisma.product.upsert({
+    where: { shopId_sku: { shopId: shop.id, sku: "SAM-A15-128" } },
+    update: {},
+    create: {
+      shopId: shop.id,
+      categoryId: catPhone.id,
+      name: "Samsung Galaxy A15 (6GB/128GB)",
+      brand: "Samsung",
+      sku: "SAM-A15-128",
+      barcode: "8801234567890",
+      modelNumber: "SM-A155F",
+      isTrackStock: true,
+      costPrice: new Prisma.Decimal(18500),
+      sellingPrice: new Prisma.Decimal(21500),
+      minStockAlert: 2,
+    },
+  });
+
+  // 2. Anker Fast Charger 20W
+  const productCharger = await prisma.product.upsert({
+    where: { shopId_sku: { shopId: shop.id, sku: "ANK-20W-CHG" } },
+    update: {},
+    create: {
+      shopId: shop.id,
+      categoryId: catAccessory.id,
+      name: "Anker PowerPort III 20W Fast Charger",
+      brand: "Anker",
+      sku: "ANK-20W-CHG",
+      barcode: "194644021234",
+      isTrackStock: true,
+      costPrice: new Prisma.Decimal(950),
+      sellingPrice: new Prisma.Decimal(1350),
+      minStockAlert: 5,
+    },
+  });
+
+  // Seed on-hand stock balances & historical movements
+  const stockItems = [
+    { product: productPhone, qty: 5, cost: 18500 },
+    { product: productCharger, qty: 20, cost: 950 },
+  ];
+
+  for (const item of stockItems) {
+    const existingBal = await prisma.stockBalance.findFirst({
+      where: {
+        shopId: shop.id,
+        productId: item.product.id,
+        locationId: location.id,
+      },
+    });
+
+    if (!existingBal) {
+      await prisma.stockBalance.create({
+        data: {
+          shopId: shop.id,
+          productId: item.product.id,
+          locationId: location.id,
+          quantityOnHand: new Prisma.Decimal(item.qty),
+          averageCost: new Prisma.Decimal(item.cost),
+        },
+      });
+
+      await prisma.stockMovement.create({
+        data: {
+          shopId: shop.id,
+          productId: item.product.id,
+          locationId: location.id,
+          movementType: "PURCHASE_RECEIPT",
+          referenceType: "OpeningStock",
+          quantity: new Prisma.Decimal(item.qty),
+          unitCost: new Prisma.Decimal(item.cost),
+          balanceAfter: new Prisma.Decimal(item.qty),
+          reason: "Initial opening stock setup",
+          actorId: adminUser.id,
+        },
+      });
+    }
+  }
+
+  // Seed Serial/IMEI numbers for the Samsung Galaxy A15
+  const sampleImeis = [
+    { imei1: "354123456789011", imei2: "354123456789012" },
+    { imei1: "354123456789021", imei2: "354123456789022" },
+    { imei1: "354123456789031", imei2: "354123456789032" },
+  ];
+
+  for (const imei of sampleImeis) {
+    const exists = await prisma.serialNumber.findFirst({
+      where: { shopId: shop.id, imei1: imei.imei1 },
+    });
+    if (!exists) {
+      await prisma.serialNumber.create({
+        data: {
+          shopId: shop.id,
+          productId: productPhone.id,
+          imei1: imei.imei1,
+          imei2: imei.imei2,
+          status: "IN_STOCK",
+        },
+      });
+    }
+  }
+
+  // Open active cash session for cashier
+  const activeSession = await prisma.cashSession.findFirst({
+    where: { shopId: shop.id, status: "OPEN" },
+  });
+
+  if (!activeSession) {
+    await prisma.cashSession.create({
+      data: {
+        shopId: shop.id,
+        cashierId: adminUser.id,
+        openingCash: new Prisma.Decimal(5000),
+        status: "OPEN",
+        notes: "Daily opening session for Rashed Telecom Main Register",
+      },
+    });
+  }
+
+  console.log(`Phase 1, 2, & 3 Seed completed successfully!`);
   console.log(`- Shop: ${shop.name} (${shop.id})`);
-  console.log(`- Default Location: ${location.name} (${location.id})`);
+  console.log(`- Active Cash Session ready for POS checkout.`);
+  console.log(`- Demo Customer: ${customer.name} (${customer.phone})`);
 }
 
 if (process.env.NODE_ENV !== "test") {
