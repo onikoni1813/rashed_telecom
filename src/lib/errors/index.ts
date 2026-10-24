@@ -65,6 +65,22 @@ export function formatErrorResponse(
     };
   }
 
+  // Handle Zod schema validation errors
+  if (error && typeof error === "object" && "name" in error && error.name === "ZodError" && "issues" in error) {
+    const zodError = error as { issues: Array<{ path: Array<string | number>; message: string }> };
+    return {
+      status: 400,
+      body: {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: zodError.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
+          details: { issues: zodError.issues },
+          requestId,
+        },
+      },
+    };
+  }
+
   // Handle standard Error without exposing internal details
   const isDev = process.env.NODE_ENV === "development";
   const message =

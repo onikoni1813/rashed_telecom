@@ -98,13 +98,32 @@ export async function postJournalEntry(
     });
   }
 
-  // 3. Persist Entry and Lines
+  // 3. Validate Closed Accounting Period Invariant
+  const entryDate = input.entryDate || new Date();
+  if (client.accountingPeriod) {
+    const closedPeriod = await client.accountingPeriod.findFirst({
+      where: {
+        shopId: input.shopId,
+        isClosed: true,
+        startDate: { lte: entryDate },
+        endDate: { gte: entryDate },
+      },
+    });
+
+    if (closedPeriod) {
+      throw new ValidationError(
+        `Cannot post journal entry: The accounting period '${closedPeriod.periodName}' is closed.`
+      );
+    }
+  }
+
+  // 4. Persist Entry and Lines
   return await client.journalEntry.create({
     data: {
       shopId: input.shopId,
       sourceType: input.sourceType,
       sourceId: input.sourceId,
-      entryDate: input.entryDate || new Date(),
+      entryDate,
       description: input.description,
       lines: {
         create: linesToCreate,

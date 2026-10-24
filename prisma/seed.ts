@@ -119,6 +119,7 @@ export const STARTER_ACCOUNTS = [
   { code: "1200", name: "Inventory", type: "ASSET" },
   { code: "2000", name: "Accounts Payable (Supplier Payables)", type: "LIABILITY" },
   { code: "2100", name: "Customer Advances", type: "LIABILITY" },
+  { code: "2200", name: "Loans Payable (Borrowings)", type: "LIABILITY" },
   { code: "3000", name: "Owner Capital", type: "EQUITY" },
   { code: "3100", name: "Owner Drawings", type: "EQUITY" },
   { code: "4000", name: "Product Sales", type: "REVENUE" },
@@ -128,6 +129,7 @@ export const STARTER_ACCOUNTS = [
   { code: "6000", name: "Rent & Utilities", type: "EXPENSE" },
   { code: "6100", name: "Salaries & Commissions", type: "EXPENSE" },
   { code: "6200", name: "Other Operating Expenses", type: "EXPENSE" },
+  { code: "6300", name: "Interest Expense", type: "EXPENSE" },
 ];
 
 export async function main() {
@@ -593,11 +595,37 @@ export async function main() {
     });
   }
 
-  console.log(`Phase 1, 2, 3, & 4 Seed completed successfully!`);
+  console.log("Seeding standard expense categories...");
+  const defaultExpenseCategories = [
+    { name: "দোকান ভাড়া (Shop Rent)", code: "6000" },
+    { name: "বিদ্যুৎ ও ইউটিলিটি বিল (Electricity & Utilities)", code: "6000" },
+    { name: "চা ও আপ্যায়ন (Tea & Entertainment)", code: "6200" },
+    { name: "স্টাফ যাতায়াত (Staff Conveyance)", code: "6200" },
+    { name: "ইন্টারনেট ও বিল (Internet & Phone)", code: "6200" },
+    { name: "অন্যান্য খরচ (Other Expenses)", code: "6200" },
+  ];
+
+  for (const expCat of defaultExpenseCategories) {
+    await prisma.expenseCategory.upsert({
+      where: {
+        shopId_name: {
+          shopId: shop.id,
+          name: expCat.name,
+        },
+      },
+      update: { code: expCat.code },
+      create: {
+        shopId: shop.id,
+        name: expCat.name,
+        code: expCat.code,
+      },
+    });
+  }
+
+  console.log(`Phase 1, 2, 3, 4 & 5 Seed completed successfully!`);
   console.log(`- Shop: ${shop.name} (${shop.id})`);
-  console.log(`- Technician: ${techUser.fullName} (${techUser.email})`);
-  console.log(`- Active Demo Repair Job: JOB-000001 (Samsung Galaxy A15)`);
-  console.log(`- Shop: ${shop.name} (${shop.id})`);
+  console.log(`- Chart of Accounts: 15 active accounts`);
+  console.log(`- Expense Categories seeded`);
   console.log(`- Active Cash Session ready for POS checkout.`);
   console.log(`- Demo Customer: ${customer.name} (${customer.phone})`);
 }

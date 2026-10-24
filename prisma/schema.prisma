@@ -50,8 +50,11 @@ model Shop {
   cashSessions    CashSession[]
   sales           Sale[]
   payments        Payment[]
-  salesReturns    SalesReturn[]
-  serviceJobs     ServiceJob[]
+  salesReturns       SalesReturn[]
+  serviceJobs        ServiceJob[]
+  expenseCategories  ExpenseCategory[]
+  expenses           Expense[]
+  accountingPeriods  AccountingPeriod[]
 
   @@map("shops")
 }
@@ -66,19 +69,21 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  memberships     ShopMember[]
-  staffProfiles   StaffProfile[]
-  auditActions    AuditLog[]                @relation("ActorAuditLogs")
-  stockMovements  StockMovement[]
-  cashSessions    CashSession[]
-  sales           Sale[]
-  payments        Payment[]
-  salesReturns    SalesReturn[]
-  assignedRepairs ServiceJob[]              @relation("AssignedTechnicianJobs")
-  intakeRepairs   ServiceJob[]              @relation("IntakeCashierJobs")
-  statusChanges   ServiceJobStatusHistory[]
-  diagnostics     ServiceDiagnostic[]
-  partsConsumed   ServicePart[]
+  memberships      ShopMember[]
+  staffProfiles    StaffProfile[]
+  auditActions     AuditLog[]                @relation("ActorAuditLogs")
+  stockMovements   StockMovement[]
+  cashSessions     CashSession[]
+  sales            Sale[]
+  payments         Payment[]
+  salesReturns     SalesReturn[]
+  assignedRepairs  ServiceJob[]              @relation("AssignedTechnicianJobs")
+  intakeRepairs    ServiceJob[]              @relation("IntakeCashierJobs")
+  statusChanges    ServiceJobStatusHistory[]
+  diagnostics      ServiceDiagnostic[]
+  partsConsumed    ServicePart[]
+  expensesRecorded Expense[]
+  periodsClosed    AccountingPeriod[]
 
   @@map("users")
 }
@@ -745,6 +750,7 @@ model Account {
 
   shop         Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
   journalLines JournalLine[]
+  expenses     Expense[]
 
   @@unique([shopId, code])
   @@index([shopId, type])
@@ -754,7 +760,7 @@ model Account {
 model JournalEntry {
   id          String   @id @default(uuid()) @db.Uuid
   shopId      String   @map("shop_id") @db.Uuid
-  sourceType  String   @map("source_type") // SALE, PAYMENT, SALES_RETURN, PURCHASE_RECEIPT
+  sourceType  String   @map("source_type") // SALE, PAYMENT, SALES_RETURN, PURCHASE_RECEIPT, EXPENSE, OWNER_DRAWING, OWNER_CAPITAL, DUE_COLLECTION, SUPPLIER_PAYMENT
   sourceId    String   @map("source_id")
   entryDate   DateTime @default(now()) @map("entry_date")
   status      String   @default("POSTED") // POSTED, REVERSED
@@ -783,6 +789,66 @@ model JournalLine {
   @@index([journalEntryId])
   @@index([accountId])
   @@map("journal_lines")
+}
+
+model ExpenseCategory {
+  id        String   @id @default(uuid()) @db.Uuid
+  shopId    String   @map("shop_id") @db.Uuid
+  name      String
+  code      String?  @default("6200") // Suggested GL account code
+  createdAt DateTime @default(now()) @map("created_at")
+
+  shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  expenses Expense[]
+
+  @@unique([shopId, name])
+  @@index([shopId])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id            String   @id @default(uuid()) @db.Uuid
+  shopId        String   @map("shop_id") @db.Uuid
+  expenseNumber String   @map("expense_number")
+  categoryId    String   @map("category_id") @db.Uuid
+  accountId     String   @map("account_id") @db.Uuid // Expense GL account
+  paymentMethod String   @map("payment_method") // CASH, BANK, BKASH, NAGAD
+  amount        Decimal  @db.Decimal(12, 2)
+  expenseDate   DateTime @default(now()) @map("expense_date")
+  payee         String?
+  receiptRef    String?  @map("receipt_ref")
+  notes         String?
+  recordedById  String   @map("recorded_by_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  shop       Shop            @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account    Account         @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  recordedBy User            @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@unique([shopId, expenseNumber])
+  @@index([shopId, expenseDate])
+  @@index([categoryId])
+  @@map("expenses")
+}
+
+model AccountingPeriod {
+  id         String    @id @default(uuid()) @db.Uuid
+  shopId     String    @map("shop_id") @db.Uuid
+  periodName String    @map("period_name") // e.g. "October 2026"
+  startDate  DateTime  @map("start_date")
+  endDate    DateTime  @map("end_date")
+  isClosed   Boolean   @default(false) @map("is_closed")
+  closedAt   DateTime? @map("closed_at")
+  closedById String?   @map("closed_by_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  shop     Shop  @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  closedBy User? @relation(fields: [closedById], references: [id], onDelete: SetNull)
+
+  @@unique([shopId, periodName])
+  @@index([shopId, isClosed])
+  @@map("accounting_periods")
 }
 
 // ==============================================================================

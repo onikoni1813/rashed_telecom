@@ -17,6 +17,7 @@ import {
   AlertCircle,
   BarChart3,
   Settings,
+  Receipt,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { href: "/app/service", key: "servicing", icon: Wrench },
   { href: "/app/customers", key: "customers", icon: Users },
   { href: "/app/suppliers", key: "suppliers", icon: Truck },
+  { href: "/app/expenses", key: "expenses", icon: Receipt },
   { href: "/app/accounts", key: "accounts", icon: BookOpen },
   { href: "/app/dues", key: "dues", icon: AlertCircle },
   { href: "/app/reports", key: "reports", icon: BarChart3 },
