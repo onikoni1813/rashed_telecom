@@ -6,6 +6,8 @@ import { Globe, User, Clock } from "lucide-react";
 import { Locale } from "@/types";
 import { getDictionary, formatDhakaDate } from "@/lib/i18n";
 
+import { OfflineIndicator } from "@/components/pwa/offline-indicator";
+
 interface TopbarProps {
   locale: Locale;
   onLocaleChange: (newLocale: Locale) => void;
@@ -45,8 +47,11 @@ export function Topbar({ locale, onLocaleChange }: TopbarProps) {
         </div>
       </div>
 
-      {/* Right side: Language selector & User pill */}
+      {/* Right side: Sync Status, Language selector & User pill */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Offline & Sync Status Indicator */}
+        <OfflineIndicator />
+
         {/* Language switcher button */}
         <button
           type="button"

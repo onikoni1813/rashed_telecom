@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Rashed Telecom — Shop Management PWA",
   description: "Enterprise management PWA for telecom sales and mobile servicing in Bangladesh",
+  manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
     apple: "/icons/icon-192.jpg",

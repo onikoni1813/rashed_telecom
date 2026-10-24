@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>অফলাইন মোড — রাশেদ টেলিকম (Rashed Telecom Offline)</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    :root {
+      --bg: #030712;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --primary: #3b82f6;
+      --warning: #f59e0b;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Bengali", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .card {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      max-width: 32rem;
+      width: 100%;
+      padding: 2rem;
+      text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .badge-icon {
+      width: 4rem;
+      height: 4rem;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem auto;
+      color: var(--warning);
+      font-size: 2rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.025em;
+    }
+    h2 {
+      font-size: 0.875rem;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+    }
+    p {
+      color: var(--muted);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+    .info-box {
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      text-align: left;
+      font-size: 0.8125rem;
+      margin-bottom: 1.5rem;
+      color: #93c5fd;
+    }
+    .info-box strong {
+      display: block;
+      color: #bfdbfe;
+      margin-bottom: 0.25rem;
+    }
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .home-link {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .home-link:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge-icon">⚡</div>
+    <h1>ইন্টারনেট সংযোগ বিচ্ছিন্ন (Offline)</h1>
+    <h2>No Active Internet Connection Detected</h2>
+
+    <p>
+      বর্তমানে আপনার ডিভাইসটি অফলাইনে রয়েছে। রাশেদ টেলিকম শপ ম্যানেজমেন্ট পিডব্লিউএ-এর ড্রাফট মোড সক্রিয় রয়েছে।
+    </p>
+
+    <div class="info-box">
+      <strong>নিরাপদ লোকাল ড্রাফট মেকানিজম (Local Drafts Safe):</strong>
+      আপনার সংরক্ষিত বিক্রয় ও সার্ভিসিং ড্রাফট ব্রাউজারের IndexedDB-তে সুরক্ষিত রয়েছে। ইন্টারনেট পুনঃসংযোগ হওয়া মাত্রই সিস্টেম স্বয়ংক্রিয়ভাবে সার্ভারের সাথে সিঙ্ক সম্পন্ন করবে।
+    </div>
+
+    <div class="actions">
+      <button onclick="window.location.reload()">পুনরায় চেষ্টা করুন (Retry)</button>
+      <a href="/app" class="home-link">ড্যাশবোর্ডে ফিরুন (Dashboard)</a>
+    </div>
+  </div>
+</body>
+</html>
