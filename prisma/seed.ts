@@ -27,6 +27,15 @@ export const DEFAULT_PERMISSIONS = [
   { key: "accounts.view_ledger", description: "View general ledger and chart of accounts", module: "accounting" },
   { key: "reports.view_profit", description: "View profit and loss financial reports", module: "reports" },
   { key: "reports.view_stock", description: "View inventory valuation and movement reports", module: "reports" },
+  { key: "staff.view", description: "View staff list, profiles, and attendance", module: "staff" },
+  { key: "staff.manage", description: "Create, update, and manage staff members", module: "staff" },
+  { key: "payroll.view", description: "View payroll and salary records", module: "payroll" },
+  { key: "payroll.process", description: "Process and disburse monthly staff salaries", module: "payroll" },
+  { key: "approvals.view", description: "View approval requests", module: "approvals" },
+  { key: "approvals.review", description: "Approve or reject maker-checker approval requests", module: "approvals" },
+  { key: "audit.view", description: "Search and inspect system audit logs", module: "audit" },
+  { key: "data.export", description: "Export catalog, customer, and statement data", module: "operations" },
+  { key: "data.import", description: "Import bulk data into system", module: "operations" },
   { key: "sync.push", description: "Push offline drafts to authoritative server", module: "sync" },
   { key: "sync.pull", description: "Pull synchronized state from server", module: "sync" },
   { key: "settings.view", description: "View shop settings", module: "settings" },
@@ -622,11 +631,106 @@ export async function main() {
     });
   }
 
-  console.log(`Phase 1, 2, 3, 4 & 5 Seed completed successfully!`);
+  console.log("Seeding staff profiles & attendance...");
+  const adminStaff = await prisma.staffProfile.upsert({
+    where: { shopId_employeeCode: { shopId: shop.id, employeeCode: "EMP-001" } },
+    update: {
+      designation: "মালিক ও প্রধান পরিচালক (Owner & Director)",
+      baseSalary: new Prisma.Decimal(50000),
+      compensationType: "SALARY",
+    },
+    create: {
+      shopId: shop.id,
+      userId: adminUser.id,
+      employeeCode: "EMP-001",
+      designation: "মালিক ও প্রধান পরিচালক (Owner & Director)",
+      department: "Management",
+      joiningDate: new Date("2024-01-01"),
+      compensationType: "SALARY",
+      baseSalary: new Prisma.Decimal(50000),
+      isActive: true,
+    },
+  });
+
+  const techStaff = await prisma.staffProfile.upsert({
+    where: { shopId_employeeCode: { shopId: shop.id, employeeCode: "EMP-002" } },
+    update: {
+      designation: "সিনিয়র হার্ডওয়্যার টেকনিশিয়ান (Hardware Tech)",
+      baseSalary: new Prisma.Decimal(25000),
+      commissionRate: new Prisma.Decimal(10.0),
+    },
+    create: {
+      shopId: shop.id,
+      userId: techUser.id,
+      employeeCode: "EMP-002",
+      designation: "সিনিয়র হার্ডওয়্যার টেকনিশিয়ান (Hardware Tech)",
+      department: "Mobile Servicing",
+      joiningDate: new Date("2024-03-01"),
+      compensationType: "SALARY_PLUS_COMMISSION",
+      baseSalary: new Prisma.Decimal(25000),
+      commissionRate: new Prisma.Decimal(10.0),
+      isActive: true,
+    },
+  });
+
+  // Seed Today Attendance
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  await prisma.attendanceRecord.upsert({
+    where: {
+      shopId_staffProfileId_date: {
+        shopId: shop.id,
+        staffProfileId: techStaff.id,
+        date: today,
+      },
+    },
+    update: {},
+    create: {
+      shopId: shop.id,
+      staffProfileId: techStaff.id,
+      date: today,
+      status: "PRESENT",
+      checkInTime: new Date(),
+      notes: "সময়মত উপস্থিতি (On-time)",
+    },
+  });
+
+  // Seed Pending Maker-Checker Approval Request
+  const pendingCount = await prisma.approvalRequest.count({ where: { shopId: shop.id } });
+  if (pendingCount === 0) {
+    await prisma.approvalRequest.create({
+      data: {
+        shopId: shop.id,
+        requestType: "STOCK_ADJUSTMENT",
+        referenceId: "ADJ-0001",
+        requestedById: techUser.id,
+        status: "PENDING",
+        details: {
+          reason: "Damaged battery during testing - request write-off of 1 unit",
+          productName: "Original 5000mAh Battery (Redmi Note 12)",
+          costValue: 1200,
+        },
+      },
+    });
+  }
+
+  // Seed In-App Notification
+  await prisma.notification.create({
+    data: {
+      shopId: shop.id,
+      userId: adminUser.id,
+      title: "সিস্টেম আপডেট সফল",
+      message: "রাশেদ টেলিকম সিস্টেম সফলভাবে Phase 6 এ আপগ্রেড হয়েছে।",
+      type: "INFO",
+      isRead: false,
+    },
+  });
+
+  console.log(`Phase 1, 2, 3, 4, 5 & 6 Seed completed successfully!`);
   console.log(`- Shop: ${shop.name} (${shop.id})`);
-  console.log(`- Chart of Accounts: 15 active accounts`);
-  console.log(`- Expense Categories seeded`);
-  console.log(`- Active Cash Session ready for POS checkout.`);
+  console.log(`- Staff Profiles: ${adminStaff.employeeCode}, ${techStaff.employeeCode}`);
+  console.log(`- Attendance Record seeded for today`);
   console.log(`- Demo Customer: ${customer.name} (${customer.phone})`);
 }
 

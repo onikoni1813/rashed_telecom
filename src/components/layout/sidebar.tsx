@@ -18,6 +18,10 @@ import {
   BarChart3,
   Settings,
   Receipt,
+  UserCheck,
+  ShieldCheck,
+  FileText,
+  SlidersHorizontal,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,6 +46,10 @@ const NAV_ITEMS: NavItemConfig[] = [
   { href: "/app/expenses", key: "expenses", icon: Receipt },
   { href: "/app/accounts", key: "accounts", icon: BookOpen },
   { href: "/app/dues", key: "dues", icon: AlertCircle },
+  { href: "/app/staff", key: "staff", icon: UserCheck },
+  { href: "/app/approvals", key: "approvals", icon: ShieldCheck },
+  { href: "/app/statements", key: "statements", icon: FileText },
+  { href: "/app/operations", key: "operations", icon: SlidersHorizontal },
   { href: "/app/reports", key: "reports", icon: BarChart3 },
   { href: "/app/settings", key: "settings", icon: Settings },
 ];

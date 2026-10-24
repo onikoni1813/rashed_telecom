@@ -55,6 +55,10 @@ model Shop {
   expenseCategories  ExpenseCategory[]
   expenses           Expense[]
   accountingPeriods  AccountingPeriod[]
+  attendanceRecords  AttendanceRecord[]
+  payrollPayments    PayrollPayment[]
+  approvalRequests   ApprovalRequest[]
+  notifications      Notification[]
 
   @@map("shops")
 }
@@ -82,8 +86,12 @@ model User {
   statusChanges    ServiceJobStatusHistory[]
   diagnostics      ServiceDiagnostic[]
   partsConsumed    ServicePart[]
-  expensesRecorded Expense[]
-  periodsClosed    AccountingPeriod[]
+  expensesRecorded    Expense[]
+  periodsClosed       AccountingPeriod[]
+  payrollPaymentsPaid PayrollPayment[]
+  approvalRequests    ApprovalRequest[]         @relation("ApprovalRequestedBy")
+  approvalReviews     ApprovalRequest[]         @relation("ApprovalReviewedBy")
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -160,15 +168,20 @@ model StaffProfile {
   shopId           String    @map("shop_id") @db.Uuid
   userId           String    @map("user_id") @db.Uuid
   employeeCode     String    @map("employee_code")
+  designation      String?   @default("Staff")
+  department       String?   @default("General")
   joiningDate      DateTime  @map("joining_date")
   compensationType String    @default("SALARY") @map("compensation_type")
   baseSalary       Decimal   @default(0) @map("base_salary") @db.Decimal(12, 2)
+  commissionRate   Decimal   @default(0) @map("commission_rate") @db.Decimal(5, 2)
   isActive         Boolean   @default(true) @map("is_active")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  shop Shop @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  shop              Shop               @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  attendanceRecords AttendanceRecord[]
+  payrollPayments   PayrollPayment[]
 
   @@unique([shopId, employeeCode])
   @@unique([shopId, userId])
@@ -767,8 +780,9 @@ model JournalEntry {
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
 
-  shop  Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  lines JournalLine[]
+  shop            Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  lines           JournalLine[]
+  payrollPayments PayrollPayment[]
 
   @@index([shopId, entryDate])
   @@index([sourceType, sourceId])
@@ -849,6 +863,94 @@ model AccountingPeriod {
   @@unique([shopId, periodName])
   @@index([shopId, isClosed])
   @@map("accounting_periods")
+}
+
+model AttendanceRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  shopId         String    @map("shop_id") @db.Uuid
+  staffProfileId String    @map("staff_profile_id") @db.Uuid
+  date           DateTime  @db.Date
+  status         String    @default("PRESENT") // PRESENT, ABSENT, LATE, LEAVE
+  checkInTime    DateTime? @map("check_in_time")
+  checkOutTime   DateTime? @map("check_out_time")
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  shop         Shop         @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  staffProfile StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Restrict)
+
+  @@unique([shopId, staffProfileId, date])
+  @@index([shopId, date])
+  @@index([staffProfileId])
+  @@map("attendance_records")
+}
+
+model PayrollPayment {
+  id               String   @id @default(uuid()) @db.Uuid
+  shopId           String   @map("shop_id") @db.Uuid
+  staffProfileId   String   @map("staff_profile_id") @db.Uuid
+  payrollMonth     String   @map("payroll_month") // e.g. "2026-10"
+  baseSalary       Decimal  @map("base_salary") @db.Decimal(12, 2)
+  commissionAmount Decimal  @default(0) @map("commission_amount") @db.Decimal(12, 2)
+  deductions       Decimal  @default(0) @db.Decimal(12, 2)
+  netAmount        Decimal  @map("net_amount") @db.Decimal(12, 2)
+  paymentMethod    String   @default("CASH") @map("payment_method") // CASH, BANK, BKASH, NAGAD
+  paidDate         DateTime @default(now()) @map("paid_date")
+  journalEntryId   String?  @map("journal_entry_id") @db.Uuid
+  paidById         String   @map("paid_by_id") @db.Uuid
+  notes            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  shop         Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  staffProfile StaffProfile  @relation(fields: [staffProfileId], references: [id], onDelete: Restrict)
+  paidBy       User          @relation(fields: [paidById], references: [id], onDelete: Restrict)
+  journalEntry JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([shopId, staffProfileId, payrollMonth])
+  @@index([shopId, payrollMonth])
+  @@index([staffProfileId])
+  @@map("payroll_payments")
+}
+
+model ApprovalRequest {
+  id            String    @id @default(uuid()) @db.Uuid
+  shopId        String    @map("shop_id") @db.Uuid
+  requestType   String    @map("request_type") // STOCK_ADJUSTMENT, LARGE_DISCOUNT, SALARY_PAYOUT, DUE_WAIVER, EXPENSE_APPROVAL
+  referenceId   String?   @map("reference_id")
+  requestedById String    @map("requested_by_id") @db.Uuid
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedById  String?   @map("reviewed_by_id") @db.Uuid
+  reviewedAt    DateTime? @map("reviewed_at")
+  reviewReason  String?   @map("review_reason")
+  details       Json?
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  shop        Shop  @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  requestedBy User  @relation("ApprovalRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  reviewedBy  User? @relation("ApprovalReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([shopId, status])
+  @@index([requestType])
+  @@map("approval_requests")
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  shopId    String   @map("shop_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid // null = broadcast to shop
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, WARNING, APPROVAL, ALERT
+  isRead    Boolean  @default(false) @map("is_read")
+  link      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  shop Shop  @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, isRead])
+  @@index([userId])
+  @@map("notifications")
 }
 
 // ==============================================================================
