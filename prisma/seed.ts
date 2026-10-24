@@ -276,6 +276,12 @@ export async function main() {
     create: { shopId: shop.id, name: "Mobile Accessories", type: "ACCESSORY" },
   });
 
+  const catParts = await prisma.category.upsert({
+    where: { shopId_name: { shopId: shop.id, name: "Spare Parts" } },
+    update: { type: "PART" },
+    create: { shopId: shop.id, name: "Spare Parts", type: "PART" },
+  });
+
   console.log("Seeding chart of accounts...");
   for (const acc of STARTER_ACCOUNTS) {
     await prisma.account.upsert({
@@ -370,10 +376,48 @@ export async function main() {
     },
   });
 
+  // 3. Samsung Galaxy A15 Replacement Display
+  const productDisplay = await prisma.product.upsert({
+    where: { shopId_sku: { shopId: shop.id, sku: "PART-DISP-SAM-A15" } },
+    update: {},
+    create: {
+      shopId: shop.id,
+      categoryId: catParts.id,
+      name: "Original AMOLED Display for Samsung A15",
+      brand: "Samsung",
+      sku: "PART-DISP-SAM-A15",
+      modelNumber: "SM-A155F",
+      isTrackStock: true,
+      costPrice: new Prisma.Decimal(1800),
+      sellingPrice: new Prisma.Decimal(2800),
+      minStockAlert: 3,
+    },
+  });
+
+  // 4. Samsung Galaxy A15 Replacement Battery
+  const productBattery = await prisma.product.upsert({
+    where: { shopId_sku: { shopId: shop.id, sku: "PART-BAT-SAM-A15" } },
+    update: {},
+    create: {
+      shopId: shop.id,
+      categoryId: catParts.id,
+      name: "5000mAh Battery for Samsung Galaxy A15",
+      brand: "Samsung",
+      sku: "PART-BAT-SAM-A15",
+      modelNumber: "EB-BA156ABY",
+      isTrackStock: true,
+      costPrice: new Prisma.Decimal(850),
+      sellingPrice: new Prisma.Decimal(1500),
+      minStockAlert: 5,
+    },
+  });
+
   // Seed on-hand stock balances & historical movements
   const stockItems = [
     { product: productPhone, qty: 5, cost: 18500 },
     { product: productCharger, qty: 20, cost: 950 },
+    { product: productDisplay, qty: 10, cost: 1800 },
+    { product: productBattery, qty: 15, cost: 850 },
   ];
 
   for (const item of stockItems) {
@@ -437,6 +481,101 @@ export async function main() {
     }
   }
 
+  // Seed Technician User
+  const techUser = await prisma.user.upsert({
+    where: { email: "tech@rashedtelecom.local" },
+    update: {},
+    create: {
+      id: "00000000-0000-0000-0000-000000000002",
+      email: "tech@rashedtelecom.local",
+      fullName: "Kamrul Hasan (Senior Tech)",
+      phone: "01899001122",
+      isActive: true,
+    },
+  });
+
+  const techRole = await prisma.role.findFirst({
+    where: { name: "TECHNICIAN", isSystem: true },
+  });
+
+  if (techRole) {
+    await prisma.shopMember.upsert({
+      where: {
+        shopId_userId: {
+          shopId: shop.id,
+          userId: techUser.id,
+        },
+      },
+      update: { roleId: techRole.id },
+      create: {
+        shopId: shop.id,
+        userId: techUser.id,
+        roleId: techRole.id,
+        isActive: true,
+      },
+    });
+  }
+
+  // Seed Demo Service Job (JOB-000001)
+  const existingJob = await prisma.serviceJob.findFirst({
+    where: { shopId: shop.id, jobNumber: "JOB-000001" },
+  });
+
+  if (!existingJob) {
+    const demoJob = await prisma.serviceJob.create({
+      data: {
+        shopId: shop.id,
+        jobNumber: "JOB-000001",
+        customerId: customer.id,
+        deviceBrand: "Samsung",
+        deviceModel: "Galaxy A15",
+        deviceImei: "354123456789099",
+        deviceColor: "Blue Black",
+        intakeCondition: "Front glass shattered, touch unresponsive, frame lightly scratched",
+        accessoriesReceived: "Phone with SIM tray only, no charger, no box",
+        reportedIssue: "Display broken after drop, touch not responding",
+        status: "DIAGNOSING",
+        assignedTechnicianId: techUser.id,
+        intakeCashierId: adminUser.id,
+        estimatedCost: new Prisma.Decimal(3300),
+        labourCost: new Prisma.Decimal(500),
+        partsCost: new Prisma.Decimal(2800),
+        totalAmount: new Prisma.Decimal(3300),
+        paidAmount: new Prisma.Decimal(0),
+        dueAmount: new Prisma.Decimal(3300),
+        paymentStatus: "PENDING",
+        notes: "Customer needs delivery by tomorrow evening",
+        statusHistory: {
+          create: [
+            {
+              fromStatus: "INTAKE",
+              toStatus: "INTAKE",
+              changedById: adminUser.id,
+              notes: "Device received at counter",
+            },
+            {
+              fromStatus: "INTAKE",
+              toStatus: "DIAGNOSING",
+              changedById: techUser.id,
+              notes: "Device transferred to repair bench for diagnosis",
+            },
+          ],
+        },
+        diagnostics: {
+          create: {
+            technicianId: techUser.id,
+            diagnosisFindings: "Display panel damaged. Motherboard and battery functioning normally. Requires display replacement.",
+            estimatedLabour: new Prisma.Decimal(500),
+            estimatedParts: new Prisma.Decimal(2800),
+            customerApproved: true,
+            approvedAt: new Date(),
+            customerNotes: "Customer agreed on phone call for original display replacement",
+          },
+        },
+      },
+    });
+  }
+
   // Open active cash session for cashier
   const activeSession = await prisma.cashSession.findFirst({
     where: { shopId: shop.id, status: "OPEN" },
@@ -454,7 +593,10 @@ export async function main() {
     });
   }
 
-  console.log(`Phase 1, 2, & 3 Seed completed successfully!`);
+  console.log(`Phase 1, 2, 3, & 4 Seed completed successfully!`);
+  console.log(`- Shop: ${shop.name} (${shop.id})`);
+  console.log(`- Technician: ${techUser.fullName} (${techUser.email})`);
+  console.log(`- Active Demo Repair Job: JOB-000001 (Samsung Galaxy A15)`);
   console.log(`- Shop: ${shop.name} (${shop.id})`);
   console.log(`- Active Cash Session ready for POS checkout.`);
   console.log(`- Demo Customer: ${customer.name} (${customer.phone})`);
