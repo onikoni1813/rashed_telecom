@@ -1,0 +1,25 @@
+// Prisma Schema for Rashed Telecom Shop Management PWA
+// Architecture defined in Master_plan.md (Sections 3, 6)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Baseline Shop model scaffolding
+model Shop {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  currency  String   @default("BDT")
+  timezone  String   @default("Asia/Dhaka")
+  settings  Json?    @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("shops")
+}
