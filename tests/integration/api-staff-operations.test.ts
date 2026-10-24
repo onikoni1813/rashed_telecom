@@ -133,7 +133,7 @@ describe("Staff, Payroll, Approvals & Operations API Integration", () => {
           id: "staff-1",
           employeeCode: "EMP-001",
           designation: "Manager",
-          baseSalary: new Prisma.Decimal(25000),
+          baseSalary: 25000 as any,
           user: {
             id: ownerId,
             fullName: "Rashed Ahmed",
@@ -177,7 +177,7 @@ describe("Staff, Payroll, Approvals & Operations API Integration", () => {
         {
           id: "pay-1",
           payrollMonth: "2026-10",
-          netAmount: new Prisma.Decimal(25000),
+          netAmount: 25000 as any,
           staffProfile: {
             employeeCode: "EMP-001",
             user: { fullName: "Tanvir Ahmed" },
@@ -313,14 +313,14 @@ describe("Staff, Payroll, Approvals & Operations API Integration", () => {
         name: "Abdur Rahim",
         phone: "01711000111",
         address: "Kaliganj",
-        totalDue: new Prisma.Decimal(2000),
+        totalDue: 2000 as any,
       });
 
       (prisma.sale.findMany as any).mockResolvedValue([
         {
           id: "sale-1",
           invoiceNumber: "INV-001",
-          totalAmount: new Prisma.Decimal(5000),
+          totalAmount: 5000 as any,
           paymentStatus: "PARTIAL",
           createdAt: new Date("2026-10-01T10:00:00Z"),
         },
@@ -330,7 +330,7 @@ describe("Staff, Payroll, Approvals & Operations API Integration", () => {
         {
           id: "pay-1",
           paymentNumber: "PAY-001",
-          amount: new Prisma.Decimal(3000),
+          amount: 3000 as any,
           paymentMethod: "CASH",
           referenceNumber: null,
           createdAt: new Date("2026-10-02T10:00:00Z"),

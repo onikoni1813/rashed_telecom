@@ -13,7 +13,7 @@ export default async function ApprovalsPage() {
 
   const rawRequests = await getApprovalRequests(defaultShopId);
 
-  const requests: SerializedApprovalRequest[] = rawRequests.map((r) => ({
+  const requests: SerializedApprovalRequest[] = rawRequests.map((r: any) => ({
     id: r.id,
     requestType: r.requestType,
     referenceId: r.referenceId,

@@ -15,7 +15,7 @@ export default async function OperationsPage() {
     limit: 50,
   });
 
-  const serializedLogs: SerializedAuditLog[] = logs.map((l) => ({
+  const serializedLogs: SerializedAuditLog[] = logs.map((l: any) => ({
     id: l.id,
     createdAt: l.createdAt.toISOString(),
     actorName: l.actor?.fullName || "System",

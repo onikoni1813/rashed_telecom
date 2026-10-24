@@ -22,7 +22,7 @@ export default async function StatementsPage() {
     }),
   ]);
 
-  const customers: StatementCustomer[] = rawCustomers.map((c) => ({
+  const customers: StatementCustomer[] = rawCustomers.map((c: any) => ({
     id: c.id,
     name: c.name,
     phone: c.phone,
@@ -30,7 +30,7 @@ export default async function StatementsPage() {
     totalDue: Number(c.totalDue),
   }));
 
-  const suppliers: StatementSupplier[] = rawSuppliers.map((s) => ({
+  const suppliers: StatementSupplier[] = rawSuppliers.map((s: any) => ({
     id: s.id,
     name: s.name,
     phone: s.phone,

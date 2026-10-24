@@ -32,7 +32,7 @@ export async function createStaffProfile(input: CreateStaffProfileInput) {
     throw new ValidationError("A valid phone number is required for staff members.");
   }
 
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // 1. Generate or verify Employee Code
     let employeeCode = input.employeeCode;
     if (!employeeCode) {
@@ -104,8 +104,8 @@ export async function createStaffProfile(input: CreateStaffProfileInput) {
         department: input.department || "General",
         joiningDate: input.joiningDate || new Date(),
         compensationType: input.compensationType || "SALARY",
-        baseSalary: new Prisma.Decimal(input.baseSalary),
-        commissionRate: new Prisma.Decimal(input.commissionRate || 0),
+        baseSalary: input.baseSalary,
+        commissionRate: input.commissionRate || 0,
         isActive: true,
       },
       include: {
@@ -265,7 +265,7 @@ export interface ProcessPayrollInput {
 }
 
 export async function processPayroll(input: ProcessPayrollInput) {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // 1. Verify Staff Profile
     const staff = await tx.staffProfile.findUnique({
       where: { id: input.staffProfileId },
@@ -311,10 +311,10 @@ export async function processPayroll(input: ProcessPayrollInput) {
         shopId: input.shopId,
         staffProfileId: staff.id,
         payrollMonth: input.payrollMonth,
-        baseSalary: new Prisma.Decimal(base),
-        commissionAmount: new Prisma.Decimal(commission),
-        deductions: new Prisma.Decimal(deductions),
-        netAmount: new Prisma.Decimal(netAmount),
+        baseSalary: base,
+        commissionAmount: commission,
+        deductions: deductions,
+        netAmount: netAmount,
         paymentMethod: input.paymentMethod,
         paidDate: new Date(),
         paidById: input.paidById,

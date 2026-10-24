@@ -27,8 +27,8 @@ export default async function StaffPage() {
     }),
   ]);
 
-  const staffList: SerializedStaffMember[] = rawStaff.map((s) => {
-    const membership = s.user.memberships.find((m) => m.shopId === defaultShopId);
+  const staffList: SerializedStaffMember[] = rawStaff.map((s: any) => {
+    const membership = s.user.memberships.find((m: any) => m.shopId === defaultShopId);
     return {
       id: s.id,
       employeeCode: s.employeeCode,
@@ -47,8 +47,8 @@ export default async function StaffPage() {
     };
   });
 
-  const attendanceList: SerializedAttendance[] = rawAttendance.map((a) => {
-    const matchedStaff = rawStaff.find((s) => s.id === a.staffProfileId);
+  const attendanceList: SerializedAttendance[] = rawAttendance.map((a: any) => {
+    const matchedStaff = rawStaff.find((s: any) => s.id === a.staffProfileId);
     return {
       id: a.id,
       staffProfileId: a.staffProfileId,
@@ -62,7 +62,7 @@ export default async function StaffPage() {
     };
   });
 
-  const payrollList: SerializedPayroll[] = rawPayroll.map((p) => ({
+  const payrollList: SerializedPayroll[] = rawPayroll.map((p: any) => ({
     id: p.id,
     staffName: p.staffProfile.user.fullName || p.staffProfile.employeeCode,
     employeeCode: p.staffProfile.employeeCode,
@@ -78,7 +78,7 @@ export default async function StaffPage() {
     notes: p.notes,
   }));
 
-  const serializedRoles: SerializedRole[] = roles.map((r) => ({
+  const serializedRoles: SerializedRole[] = roles.map((r: any) => ({
     id: r.id,
     name: r.name,
     description: r.description,

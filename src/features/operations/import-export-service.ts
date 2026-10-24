@@ -69,8 +69,8 @@ export async function exportProducts(shopId: string) {
     orderBy: { name: "asc" },
   });
 
-  return products.map((p) => {
-    const totalQty = p.stockBalances.reduce((sum, sb) => sum + Number(sb.quantityOnHand), 0);
+  return products.map((p: any) => {
+    const totalQty = p.stockBalances.reduce((sum: number, sb: any) => sum + Number(sb.quantityOnHand), 0);
     return {
       id: p.id,
       sku: p.sku,
@@ -109,7 +109,7 @@ export async function importProducts(
   let importedCount = 0;
   let updatedCount = 0;
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     // Cache categories for the shop
     const categories = await tx.category.findMany({ where: { shopId } });
     const categoryMap = new Map<string, string>();
@@ -136,7 +136,7 @@ export async function importProducts(
           },
         });
         categoryId = newCat.id;
-        categoryMap.set(catKey, categoryId);
+        categoryMap.set(catKey, newCat.id);
       }
 
       const existing = await tx.product.findUnique({
@@ -148,8 +148,8 @@ export async function importProducts(
           where: { id: existing.id },
           data: {
             name: row.name,
-            costPrice: new Prisma.Decimal(row.costPrice || 0),
-            sellingPrice: new Prisma.Decimal(row.sellingPrice),
+            costPrice: row.costPrice || 0,
+            sellingPrice: row.sellingPrice,
             brand: row.brand || existing.brand,
             barcode: row.barcode || existing.barcode,
           },
@@ -162,8 +162,8 @@ export async function importProducts(
             categoryId,
             sku: row.sku,
             name: row.name,
-            costPrice: new Prisma.Decimal(row.costPrice || 0),
-            sellingPrice: new Prisma.Decimal(row.sellingPrice),
+            costPrice: row.costPrice || 0,
+            sellingPrice: row.sellingPrice,
             brand: row.brand || null,
             barcode: row.barcode || null,
             minStockAlert: row.minStockAlert || 5,
@@ -195,7 +195,7 @@ export async function exportCustomers(shopId: string) {
     orderBy: { name: "asc" },
   });
 
-  return customers.map((c) => ({
+  return customers.map((c: any) => ({
     id: c.id,
     name: c.name,
     phone: c.phone,
