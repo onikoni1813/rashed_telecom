@@ -229,9 +229,69 @@ export async function main() {
     });
   }
 
-  console.log(`Phase 1 Seed completed successfully!`);
-  console.log(`- Shop ID: ${shop.id} (${shop.name})`);
-  console.log(`- Admin User ID: ${adminUser.id} (${adminUser.email})`);
+  console.log("Seeding default stock location...");
+  const location = await prisma.location.upsert({
+    where: {
+      shopId_name: {
+        shopId: shop.id,
+        name: "Main Shop Floor",
+      },
+    },
+    update: {},
+    create: {
+      shopId: shop.id,
+      name: "Main Shop Floor",
+      isDefault: true,
+    },
+  });
+
+  console.log("Seeding standard categories...");
+  const categories = [
+    { name: "Smartphones", type: "PHONE" },
+    { name: "Mobile Accessories", type: "ACCESSORY" },
+    { name: "Display & Replacement Parts", type: "PART" },
+    { name: "Service Consumables", type: "CONSUMABLE" },
+  ];
+
+  for (const cat of categories) {
+    await prisma.category.upsert({
+      where: {
+        shopId_name: {
+          shopId: shop.id,
+          name: cat.name,
+        },
+      },
+      update: { type: cat.type },
+      create: {
+        shopId: shop.id,
+        name: cat.name,
+        type: cat.type,
+      },
+    });
+  }
+
+  console.log("Seeding sample verified supplier...");
+  await prisma.supplier.upsert({
+    where: {
+      shopId_name: {
+        shopId: shop.id,
+        name: "Smart Technologies (BD) Ltd",
+      },
+    },
+    update: {},
+    create: {
+      shopId: shop.id,
+      name: "Smart Technologies (BD) Ltd",
+      contactPerson: "Md. Karim",
+      phone: "01811223344",
+      email: "orders@smart-bd.com",
+      address: "Dhaka, Bangladesh",
+    },
+  });
+
+  console.log(`Phase 1 & 2 Seed completed successfully!`);
+  console.log(`- Shop: ${shop.name} (${shop.id})`);
+  console.log(`- Default Location: ${location.name} (${location.id})`);
 }
 
 if (process.env.NODE_ENV !== "test") {
