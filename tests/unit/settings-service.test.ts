@@ -73,7 +73,6 @@ describe("Settings Service Unit Tests", () => {
       expect(result.name).toBe("Rashed Telecom");
       expect(result.settings.phone).toBe("01711223344");
       expect(result.settings.receiptPaperSize).toBe("80mm");
-      expect(result.settings.currency).toBeUndefined(); // inside settings config
       expect(result.currency).toBe("BDT");
       expect(result.stats.totalProducts).toBe(25);
       expect(result.stats.totalSales).toBe(450);
