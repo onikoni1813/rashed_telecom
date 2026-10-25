@@ -115,6 +115,7 @@ export function DashboardView({
     initialAnalytics || null
   );
   const [isPending, startTransition] = useTransition();
+  const [loadingTarget, setLoadingTarget] = useState<string | null>(null);
 
   // Active Tab in Analytics Drilldown
   const [activeTab, setActiveTab] = useState<"top-products" | "expenses" | "payments" | "trend">("top-products");
@@ -165,20 +166,43 @@ export function DashboardView({
   const handlePeriodChange = (period: AnalyticsPeriod) => {
     setSelectedPeriod(period);
     if (period !== "custom") {
+      setLoadingTarget(period);
       startTransition(async () => {
         try {
           const res = await fetchPerformanceAnalyticsAction(shopId, period);
           setAnalytics(res);
         } catch (err) {
           console.error("Failed to load analytics:", err);
+        } finally {
+          setLoadingTarget(null);
         }
       });
     }
   };
 
+  const handleRefresh = () => {
+    setLoadingTarget("refresh");
+    startTransition(async () => {
+      try {
+        const res = await fetchPerformanceAnalyticsAction(
+          shopId,
+          selectedPeriod,
+          selectedPeriod === "custom" ? customStartDate : undefined,
+          selectedPeriod === "custom" ? customEndDate : undefined
+        );
+        setAnalytics(res);
+      } catch (err) {
+        console.error("Failed to refresh analytics:", err);
+      } finally {
+        setLoadingTarget(null);
+      }
+    });
+  };
+
   const handleApplyCustomFilter = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customStartDate) return;
+    setLoadingTarget("custom");
     startTransition(async () => {
       try {
         const res = await fetchPerformanceAnalyticsAction(
@@ -190,6 +214,8 @@ export function DashboardView({
         setAnalytics(res);
       } catch (err) {
         console.error("Failed to load custom analytics:", err);
+      } finally {
+        setLoadingTarget(null);
       }
     });
   };
@@ -311,12 +337,6 @@ export function DashboardView({
                 <h2 className="text-base font-extrabold text-foreground">
                   ব্যবসায়িক ফিল্টার ও লাভ বিশ্লেষণ
                 </h2>
-                {isPending && (
-                  <span className="inline-flex items-center gap-1 text-xs text-primary font-bold animate-pulse">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    হিসাব আপডেট হচ্ছে...
-                  </span>
-                )}
               </div>
               <p className="text-xs text-muted-foreground">
                 {analytics?.periodLabel || "আজকের সেলস, সার্ভিস ও খরচের লাইভ মেট্রিক্স"}
@@ -335,7 +355,11 @@ export function DashboardView({
                   : "text-muted-foreground hover:text-foreground hover:bg-background/80"
               }`}
             >
-              <Zap className="w-3.5 h-3.5" />
+              {loadingTarget === "today" ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Zap className="w-3.5 h-3.5" />
+              )}
               <span>আজকে</span>
             </button>
 
@@ -348,7 +372,11 @@ export function DashboardView({
                   : "text-muted-foreground hover:text-foreground hover:bg-background/80"
               }`}
             >
-              <Calendar className="w-3.5 h-3.5" />
+              {loadingTarget === "week" ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Calendar className="w-3.5 h-3.5" />
+              )}
               <span>এই সপ্তাহ</span>
             </button>
 
@@ -361,7 +389,11 @@ export function DashboardView({
                   : "text-muted-foreground hover:text-foreground hover:bg-background/80"
               }`}
             >
-              <Calendar className="w-3.5 h-3.5" />
+              {loadingTarget === "month" ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Calendar className="w-3.5 h-3.5" />
+              )}
               <span>এই মাস</span>
             </button>
 
@@ -374,7 +406,11 @@ export function DashboardView({
                   : "text-muted-foreground hover:text-foreground hover:bg-background/80"
               }`}
             >
-              <TrendingUp className="w-3.5 h-3.5" />
+              {loadingTarget === "year" ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <TrendingUp className="w-3.5 h-3.5" />
+              )}
               <span>বাৎসরিক</span>
             </button>
 
@@ -387,17 +423,21 @@ export function DashboardView({
                   : "text-muted-foreground hover:text-foreground hover:bg-background/80"
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
+              {loadingTarget === "custom" ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Layers className="w-3.5 h-3.5" />
+              )}
               <span>কাস্টম তারিখ</span>
             </button>
 
             <button
-              onClick={() => handlePeriodChange(selectedPeriod)}
+              onClick={handleRefresh}
               disabled={isPending}
               title="পুনরায় লোড করুন"
               className="p-2 text-muted-foreground hover:text-foreground rounded-xl hover:bg-background transition-all"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isPending ? "animate-spin text-primary" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingTarget === "refresh" ? "animate-spin text-primary" : ""}`} />
             </button>
 
             <button
