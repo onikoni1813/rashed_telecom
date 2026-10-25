@@ -1,6 +1,7 @@
 import React from "react";
 import { prisma } from "@/lib/db/prisma";
 import { DashboardView, DashboardMetricData } from "@/features/dashboard/dashboard-view";
+import { getPerformanceAnalytics } from "@/features/dashboard/analytics-service";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function DashboardPage() {
     customersWithDue,
     expensesToday,
     products,
+    initialAnalytics,
   ] = await Promise.all([
     prisma.shop.findUnique({
       where: { id: defaultShopId },
@@ -69,6 +71,7 @@ export default async function DashboardPage() {
       },
       take: 6,
     }),
+    getPerformanceAnalytics({ shopId: defaultShopId, period: "today" }),
   ]);
 
   const todaySalesTotal = salesToday.reduce((sum, s) => sum + Number(s.totalAmount), 0);
@@ -129,5 +132,11 @@ export default async function DashboardPage() {
     }),
   };
 
-  return <DashboardView data={metricData} />;
+  return (
+    <DashboardView
+      data={metricData}
+      initialAnalytics={initialAnalytics}
+      shopId={defaultShopId}
+    />
+  );
 }
