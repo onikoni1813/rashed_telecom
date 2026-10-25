@@ -193,3 +193,69 @@ export async function getProducts(params: {
     skip: offset,
   });
 }
+
+export async function deleteProduct(id: string, shopId: string) {
+  const existing = await prisma.product.findUnique({
+    where: { id },
+  });
+  if (!existing || existing.shopId !== shopId) {
+    throw new NotFoundError("পণ্যটি পাওয়া যায়নি বা এই দোকানের অন্তর্ভুক্ত নয়।");
+  }
+
+  // Check if product has historical transactions (Sales, Purchases, Serials, Repairs)
+  const [salesCount, purchasesCount, serialsCount, serviceCount] = await Promise.all([
+    prisma.saleItem?.count ? prisma.saleItem.count({ where: { productId: id } }) : 0,
+    prisma.goodsReceiptItem?.count ? prisma.goodsReceiptItem.count({ where: { productId: id } }) : 0,
+    prisma.serialNumber?.count ? prisma.serialNumber.count({ where: { productId: id } }) : 0,
+    prisma.servicePart?.count ? prisma.servicePart.count({ where: { productId: id } }) : 0,
+  ]);
+
+  const hasHistory = salesCount > 0 || purchasesCount > 0 || serialsCount > 0 || serviceCount > 0;
+
+  if (hasHistory) {
+    // If it has business transactions, deactivate (soft-delete) to preserve accounting and ledger integrity
+    await prisma.product.update({
+      where: { id },
+      data: { isActive: false },
+    });
+    return {
+      success: true,
+      deleted: false,
+      deactivated: true,
+      message: "পণ্যটির অতীত বিক্রয় ও আর্থিক হিসেব সুরক্ষিত রাখতে এটিকে স্থায়ীভাবে না মুছে 'নিষ্ক্রিয়' করা হয়েছে। এটি আর বিক্রয় তালিকায় আসবে না।",
+    };
+  }
+
+  // If no transactions exist, safe to permanently delete
+  if (prisma.stockMovement?.deleteMany) {
+    await prisma.stockMovement.deleteMany({ where: { productId: id } });
+  }
+  if (prisma.stockBalance?.deleteMany) {
+    await prisma.stockBalance.deleteMany({ where: { productId: id } });
+  }
+  if (prisma.productVariant?.deleteMany) {
+    await prisma.productVariant.deleteMany({ where: { productId: id } });
+  }
+
+  await prisma.product.delete({ where: { id } });
+
+  return {
+    success: true,
+    deleted: true,
+    deactivated: false,
+    message: "পণ্যটি স্থায়ীভাবে মুছে ফেলা হয়েছে।",
+  };
+}
+
+export async function toggleProductStatus(id: string, shopId: string, isActive: boolean) {
+  const existing = await prisma.product.findUnique({ where: { id } });
+  if (!existing || existing.shopId !== shopId) {
+    throw new NotFoundError("পণ্যটি পাওয়া যায়নি।");
+  }
+
+  return await prisma.product.update({
+    where: { id },
+    data: { isActive },
+    include: { category: true },
+  });
+}

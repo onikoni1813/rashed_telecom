@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
-import { createProduct } from "./product-service";
+import { createProduct, deleteProduct, toggleProductStatus } from "./product-service";
 
 export interface CreateProductActionInput {
   shopId: string;
@@ -160,6 +160,55 @@ export async function createCategoryAction(input: CreateCategoryActionInput) {
     return {
       success: false,
       error: err.message || "ক্যাটাগরি তৈরি করতে ব্যর্থ হয়েছে।",
+    };
+  }
+}
+
+export async function deleteProductAction(productId: string, shopId: string) {
+  try {
+    const defaultShopId = shopId || "11111111-1111-1111-1111-111111111111";
+    const res = await deleteProduct(productId, defaultShopId);
+
+    revalidatePath("/app/products");
+    revalidatePath("/app/pos");
+    revalidatePath("/app/inventory");
+
+    return res;
+  } catch (err: any) {
+    console.error("deleteProductAction error:", err);
+    return {
+      success: false,
+      deleted: false,
+      deactivated: false,
+      error: err.message || "পণ্য ডিলিট করতে সমস্যা হয়েছে।",
+    };
+  }
+}
+
+export async function toggleProductStatusAction(
+  productId: string,
+  shopId: string,
+  isActive: boolean
+) {
+  try {
+    const defaultShopId = shopId || "11111111-1111-1111-1111-111111111111";
+    const updated = await toggleProductStatus(productId, defaultShopId, isActive);
+
+    revalidatePath("/app/products");
+    revalidatePath("/app/pos");
+
+    return {
+      success: true,
+      product: {
+        id: updated.id,
+        isActive: updated.isActive,
+      },
+    };
+  } catch (err: any) {
+    console.error("toggleProductStatusAction error:", err);
+    return {
+      success: false,
+      error: err.message || "স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে।",
     };
   }
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, requirePermission, assertShopAccess } from "@/lib/auth/guards";
-import { updateProduct } from "@/features/products/product-service";
+import { updateProduct, deleteProduct } from "@/features/products/product-service";
 import { formatErrorResponse, ValidationError, NotFoundError } from "@/lib/errors";
 import { ApiSuccessResponse } from "@/types";
 
@@ -102,6 +102,41 @@ export async function PATCH(
 
     const payload: ApiSuccessResponse<typeof updated> = {
       data: updated,
+      meta: {
+        requestId,
+        timestamp: new Date().toISOString(),
+      },
+    };
+
+    return NextResponse.json(payload, { status: 200 });
+  } catch (err) {
+    const { status, body } = formatErrorResponse(err, requestId);
+    return NextResponse.json(body, { status });
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const requestId = crypto.randomUUID();
+
+  try {
+    const authUser = await requireAuth(req);
+    const { id } = await params;
+    const { searchParams } = new URL(req.url);
+    const shopId = searchParams.get("shopId");
+
+    if (!shopId) {
+      throw new ValidationError("Missing required query parameter: 'shopId'");
+    }
+
+    await requirePermission(authUser.id, shopId, "products.update");
+
+    const result = await deleteProduct(id, shopId);
+
+    const payload: ApiSuccessResponse<typeof result> = {
+      data: result,
       meta: {
         requestId,
         timestamp: new Date().toISOString(),

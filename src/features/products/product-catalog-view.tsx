@@ -25,8 +25,15 @@ import {
   AlertCircle,
   BarChart3,
   Archive,
+  Trash2,
+  Power,
 } from "lucide-react";
-import { createProductAction, createCategoryAction } from "./product-actions";
+import {
+  createProductAction,
+  createCategoryAction,
+  deleteProductAction,
+  toggleProductStatusAction,
+} from "./product-actions";
 
 export interface SerializedStockBalance {
   id: string;
@@ -124,6 +131,10 @@ export function ProductCatalogView({
 
   // Copy SKU state feedback
   const [copiedSku, setCopiedSku] = useState<string | null>(null);
+
+  // Delete product state
+  const [productToDelete, setProductToDelete] = useState<SerializedProduct | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const showNotification = (msg: string, isError = false) => {
     if (isError) {
@@ -315,6 +326,55 @@ export function ProductCatalogView({
     navigator.clipboard.writeText(text);
     setCopiedSku(text);
     setTimeout(() => setCopiedSku(null), 2000);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!productToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteProductAction(productToDelete.id, shopId);
+      if (!res.success) {
+        const errMsg = "error" in res ? (res.error as string) : "পণ্য মুছে ফেলতে সমস্যা হয়েছে।";
+        showNotification(errMsg, true);
+        return;
+      }
+
+      if (res.deleted) {
+        setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
+        showNotification(`"${productToDelete.name}" সম্পূর্ণভাবে মুছে ফেলা হয়েছে!`);
+      } else if (res.deactivated) {
+        setProducts((prev) =>
+          prev.map((p) => (p.id === productToDelete.id ? { ...p, isActive: false } : p))
+        );
+        showNotification(
+          `পণ্যটির অতীত হিসাব সুরক্ষিত রাখতে এটিকে 'নিষ্ক্রিয়' করা হয়েছে।`
+        );
+      }
+      setProductToDelete(null);
+    } catch (err: any) {
+      showNotification(err.message || "ডিলিট করতে সমস্যা হয়েছে।", true);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleToggleStatus = async (product: SerializedProduct) => {
+    const nextStatus = !product.isActive;
+    try {
+      const res = await toggleProductStatusAction(product.id, shopId, nextStatus);
+      if (!res.success) {
+        showNotification(res.error || "স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে।", true);
+        return;
+      }
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, isActive: nextStatus } : p))
+      );
+      showNotification(
+        `"${product.name}" এখন ${nextStatus ? "সক্রিয়" : "নিষ্ক্রিয়"} করা হয়েছে!`
+      );
+    } catch (err: any) {
+      showNotification(err.message || "সমস্যা হয়েছে।", true);
+    }
   };
 
   // Profit Margin calculation helper for Add Product Modal
@@ -601,12 +661,13 @@ export function ProductCatalogView({
                 <th className="px-4 py-3.5 text-center">লাভ (Margin)</th>
                 <th className="px-4 py-3.5 text-center">মজুদ স্টক</th>
                 <th className="px-4 py-3.5 text-center">স্ট্যাটাস</th>
+                <th className="px-4 py-3.5 text-center">অ্যাকশন</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-16 text-center text-muted-foreground">
                     <Package className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
                     <p className="font-bold text-base text-foreground">কোন পণ্য পাওয়া যায়নি</p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
@@ -674,7 +735,7 @@ export function ProductCatalogView({
                             type="button"
                             onClick={() => copyToClipboard(product.sku)}
                             title="SKU কপি করুন"
-                            className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                           >
                             {copiedSku === product.sku ? (
                               <Check className="w-3 h-3 text-emerald-500" />
@@ -732,15 +793,33 @@ export function ProductCatalogView({
                         )}
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(product)}
+                          title={product.isActive ? "নিষ্ক্রিয় করতে ক্লিক করুন" : "সক্রিয় করতে ক্লিক করুন"}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer hover:scale-105 ${
                             product.isActive
-                              ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30"
-                              : "bg-muted text-muted-foreground border border-border"
+                              ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/30"
+                              : "bg-muted text-muted-foreground border border-border hover:bg-emerald-500/10 hover:text-emerald-500 hover:border-emerald-500/30"
                           }`}
                         >
-                          {product.isActive ? "সক্রিয়" : "নিষ্ক্রিয়"}
-                        </span>
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              product.isActive ? "bg-indigo-500" : "bg-muted-foreground"
+                            }`}
+                          />
+                          <span>{product.isActive ? "সক্রিয়" : "নিষ্ক্রিয়"}</span>
+                        </button>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setProductToDelete(product)}
+                          title="পণ্য মুছে ফেলুন"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -750,6 +829,68 @@ export function ProductCatalogView({
           </table>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* MODAL: DELETE PRODUCT CONFIRMATION */}
+      {/* ========================================================================= */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md glass-panel bg-card border border-border/80 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-foreground">পণ্য মুছে ফেলতে চান?</h3>
+                <p className="text-xs text-muted-foreground">পণ্যটি ডিলিট বা নিষ্ক্রিয় করার তথ্য</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 text-xs space-y-1">
+              <div className="font-bold text-foreground text-sm">{productToDelete.name}</div>
+              <div className="text-muted-foreground flex items-center gap-2 font-mono">
+                <span>SKU: {productToDelete.sku}</span>
+                {productToDelete.brand && <span>• ব্র্যান্ড: {productToDelete.brand}</span>}
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-700 dark:text-amber-400 space-y-1">
+              <div className="font-bold flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                <span>নিরাপত্তা নীতি:</span>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                পণ্যটির যদি কোনো অতীত বিক্রয় বা লেনদেনের হিসেব না থাকে, তবে এটি স্থায়ীভাবে মুছে যাবে। আর যদি পূর্বে কোনো বিক্রয় বা ইনভয়েস থেকে থাকে, তবে অডিট ও লাভ-ক্ষতির হিসেব সুরক্ষিত রাখতে পণ্যটি স্বয়ংক্রিয়ভাবে &apos;নিষ্ক্রিয়&apos; হয়ে যাবে যাতে আর POS কাউন্টারে না আসে।
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <span>মুছে ফেলা হচ্ছে...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>মুছে ফেলুন</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL: ADD PRODUCT */}
