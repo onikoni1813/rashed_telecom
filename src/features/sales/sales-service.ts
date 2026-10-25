@@ -194,11 +194,11 @@ export async function createSale(input: CreateSaleInput) {
         cashierId: input.cashierId,
         cashSessionId: cashSession?.id || null,
         invoiceNumber,
-        subtotal: new Prisma.Decimal(calculatedSubtotal),
-        discount: new Prisma.Decimal(discountAmount),
-        totalAmount: new Prisma.Decimal(calculatedTotal),
-        paidAmount: new Prisma.Decimal(totalPaidAmount),
-        dueAmount: new Prisma.Decimal(dueAmount),
+        subtotal: calculatedSubtotal,
+        discount: discountAmount,
+        totalAmount: calculatedTotal,
+        paidAmount: totalPaidAmount,
+        dueAmount: dueAmount,
         paymentStatus,
         notes: input.notes,
         items: {
@@ -206,9 +206,9 @@ export async function createSale(input: CreateSaleInput) {
             productId: vi.product.id,
             variantId: vi.variantId || null,
             quantity: vi.quantity,
-            unitPrice: new Prisma.Decimal(vi.unitPrice),
-            unitCost: new Prisma.Decimal(vi.unitCost),
-            subtotal: new Prisma.Decimal(vi.subtotal),
+            unitPrice: vi.unitPrice,
+            unitCost: vi.unitCost,
+            subtotal: vi.subtotal,
           })),
         },
       },
@@ -270,14 +270,14 @@ export async function createSale(input: CreateSaleInput) {
               shopId: input.shopId,
               paymentNumber,
               customerId: customer?.id || null,
-              amount: new Prisma.Decimal(p.amount),
+              amount: p.amount,
               paymentMethod: p.method,
               referenceNumber: p.referenceNumber,
               receivedBy: input.cashierId,
               allocations: {
                 create: {
                   saleId: sale.id,
-                  amount: new Prisma.Decimal(p.amount),
+                  amount: p.amount,
                 },
               },
             },
@@ -292,7 +292,7 @@ export async function createSale(input: CreateSaleInput) {
         where: { id: customer.id },
         data: {
           totalDue: {
-            increment: new Prisma.Decimal(dueAmount),
+            increment: dueAmount,
           },
         },
       });
@@ -520,7 +520,7 @@ export async function processSaleReturn(input: ProcessReturnInput) {
         saleId: sale.id,
         customerId: sale.customerId,
         returnNumber,
-        refundAmount: new Prisma.Decimal(totalRefundAmount),
+        refundAmount: totalRefundAmount,
         returnReason: input.returnReason || null,
         createdBy: input.returnedBy,
         items: {
@@ -529,7 +529,7 @@ export async function processSaleReturn(input: ProcessReturnInput) {
             productId: vi.saleItem.productId,
             variantId: vi.saleItem.variantId,
             quantity: vi.quantity,
-            refundUnitPrice: new Prisma.Decimal(vi.unitPrice),
+            refundUnitPrice: vi.unitPrice,
             condition: vi.condition,
           })),
         },
@@ -574,7 +574,7 @@ export async function processSaleReturn(input: ProcessReturnInput) {
           where: { id: sale.id },
           data: {
             dueAmount: {
-              decrement: new Prisma.Decimal(adjustedDue),
+              decrement: adjustedDue,
             },
             paymentStatus: Number(sale.dueAmount) - adjustedDue === 0 ? "PAID" : "PARTIALLY_PAID",
           },
@@ -584,7 +584,7 @@ export async function processSaleReturn(input: ProcessReturnInput) {
           where: { id: sale.customer.id },
           data: {
             totalDue: {
-              decrement: new Prisma.Decimal(adjustedDue),
+              decrement: adjustedDue,
             },
           },
         });
