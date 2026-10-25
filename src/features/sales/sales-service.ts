@@ -162,6 +162,11 @@ export async function createSale(input: CreateSaleInput) {
     }
 
     const totalPaidAmount = totalCashPaid + totalDigitalPaid;
+    if (totalPaidAmount > calculatedTotal) {
+      throw new ValidationError(
+        `পরিশোধের পরিমাণ (৳${totalPaidAmount}) মোট বিলের (৳${calculatedTotal}) চেয়ে বেশি হতে পারে না। অতিরিক্ত ক্যাশ প্রাপ্তি থাকলে কাস্টমার ক্যাশ দিল (Tendered) হিসেবে হিসাব করুন।`
+      );
+    }
     const dueAmount = Math.max(0, calculatedTotal - totalPaidAmount);
 
     if (dueAmount > 0 && !customer) {

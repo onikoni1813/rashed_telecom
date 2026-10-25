@@ -85,6 +85,7 @@ export function PosTerminal({
   const [cashAmount, setCashAmount] = useState<number>(0);
   const [bkashAmount, setBkashAmount] = useState<number>(0);
   const [nagadAmount, setNagadAmount] = useState<number>(0);
+  const [isCustomPayment, setIsCustomPayment] = useState<boolean>(false);
 
   // Cash Tendered for Change Calculation
   const [cashTendered, setCashTendered] = useState<number>(0);
@@ -121,6 +122,16 @@ export function PosTerminal({
   const totalPaid = cashAmount + bkashAmount + nagadAmount;
   const dueAmount = Math.max(0, totalAmount - totalPaid);
   const changeDue = cashTendered > cashAmount ? cashTendered - cashAmount : 0;
+
+  // Auto-sync cash amount with total bill if not using custom split payment
+  useEffect(() => {
+    if (!isCustomPayment) {
+      setCashAmount(totalAmount);
+      setBkashAmount(0);
+      setNagadAmount(0);
+      setCashTendered(totalAmount);
+    }
+  }, [totalAmount, isCustomPayment]);
 
   // Ref for checkout handler in keyboard shortcut listener
   const handleCheckoutRef = useRef<() => void>(() => {});
@@ -175,13 +186,6 @@ export function PosTerminal({
         },
       ];
     });
-
-    // Auto update cash amount if only cash is active
-    if (bkashAmount === 0 && nagadAmount === 0) {
-      setTimeout(() => {
-        setCashAmount((prev) => prev + Number(product.sellingPrice));
-      }, 0);
-    }
   };
 
   const updateQuantity = (productId: string, delta: number) => {
@@ -216,6 +220,7 @@ export function PosTerminal({
   const clearCart = () => {
     setCart([]);
     setDiscount(0);
+    setIsCustomPayment(false);
     setCashAmount(0);
     setBkashAmount(0);
     setNagadAmount(0);
@@ -224,6 +229,14 @@ export function PosTerminal({
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+
+    if (totalPaid > totalAmount) {
+      setErrorMessage(
+        `পরিশোধের পরিমাণ (${formatBDT(totalPaid)}) মোট বিলের (${formatBDT(totalAmount)}) চেয়ে বেশি হতে পারে না! অতিরিক্ত টাকা ফেরত দেওয়ার জন্য 'কাস্টমার ক্যাশ দিল (Tendered)' অপশন ব্যবহার করুন।`
+      );
+      return;
+    }
+
     setLoading(true);
     setErrorMessage(null);
 
@@ -725,7 +738,10 @@ export function PosTerminal({
                   type="number"
                   min="0"
                   value={cashAmount || ""}
-                  onChange={(e) => setCashAmount(Number(e.target.value))}
+                  onChange={(e) => {
+                    setIsCustomPayment(true);
+                    setCashAmount(Number(e.target.value));
+                  }}
                   placeholder="০"
                   className="w-full text-xs font-mono font-black p-1.5 bg-background border border-emerald-500/20 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
                 />
@@ -740,7 +756,10 @@ export function PosTerminal({
                   type="number"
                   min="0"
                   value={bkashAmount || ""}
-                  onChange={(e) => setBkashAmount(Number(e.target.value))}
+                  onChange={(e) => {
+                    setIsCustomPayment(true);
+                    setBkashAmount(Number(e.target.value));
+                  }}
                   placeholder="০"
                   className="w-full text-xs font-mono font-black p-1.5 bg-background border border-[#E2136E]/30 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-[#E2136E]/20"
                 />
@@ -755,7 +774,10 @@ export function PosTerminal({
                   type="number"
                   min="0"
                   value={nagadAmount || ""}
-                  onChange={(e) => setNagadAmount(Number(e.target.value))}
+                  onChange={(e) => {
+                    setIsCustomPayment(true);
+                    setNagadAmount(Number(e.target.value));
+                  }}
                   placeholder="০"
                   className="w-full text-xs font-mono font-black p-1.5 bg-background border border-[#F7941D]/30 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-[#F7941D]/20"
                 />
@@ -767,6 +789,7 @@ export function PosTerminal({
               <button
                 type="button"
                 onClick={() => {
+                  setIsCustomPayment(false);
                   setCashAmount(totalAmount);
                   setBkashAmount(0);
                   setNagadAmount(0);
@@ -779,9 +802,11 @@ export function PosTerminal({
               <button
                 type="button"
                 onClick={() => {
+                  setIsCustomPayment(true);
                   setBkashAmount(totalAmount);
                   setCashAmount(0);
                   setNagadAmount(0);
+                  setCashTendered(0);
                 }}
                 className="text-[11px] px-2.5 py-1 rounded-lg border border-[#E2136E]/30 bg-[#E2136E]/10 hover:bg-[#E2136E]/20 font-bold text-[#E2136E] transition-colors"
               >
@@ -790,9 +815,11 @@ export function PosTerminal({
               <button
                 type="button"
                 onClick={() => {
+                  setIsCustomPayment(true);
                   setNagadAmount(totalAmount);
                   setCashAmount(0);
                   setBkashAmount(0);
+                  setCashTendered(0);
                 }}
                 className="text-[11px] px-2.5 py-1 rounded-lg border border-[#F7941D]/30 bg-[#F7941D]/10 hover:bg-[#F7941D]/20 font-bold text-[#F7941D] transition-colors"
               >
