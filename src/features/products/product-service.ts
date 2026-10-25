@@ -13,7 +13,9 @@ export interface CreateProductInput {
   isTrackStock?: boolean;
   costPrice?: number;
   sellingPrice?: number;
+  initialStock?: number;
   minStockAlert?: number;
+  locationId?: string;
 }
 
 export interface UpdateProductInput {
@@ -51,7 +53,10 @@ export async function createProduct(input: CreateProductInput) {
     throw new ConflictError(`Product SKU '${input.sku}' is already in use in this shop.`);
   }
 
-  return await prisma.product.create({
+  const initialQty = Number(input.initialStock) || 0;
+  const isTrackStock = input.isTrackStock ?? true;
+
+  const product = await prisma.product.create({
     data: {
       shopId: input.shopId,
       categoryId: input.categoryId,
@@ -60,16 +65,60 @@ export async function createProduct(input: CreateProductInput) {
       sku: input.sku.trim(),
       barcode: input.barcode?.trim() || null,
       modelNumber: input.modelNumber?.trim() || null,
-      isTrackStock: input.isTrackStock ?? true,
-      costPrice: new Prisma.Decimal(input.costPrice ?? 0),
-      sellingPrice: new Prisma.Decimal(input.sellingPrice ?? 0),
+      isTrackStock,
+      costPrice: input.costPrice ?? 0,
+      sellingPrice: input.sellingPrice ?? 0,
       minStockAlert: input.minStockAlert ?? 5,
     },
     include: {
       category: true,
-      stockBalances: true,
+      stockBalances: {
+        include: { location: true },
+      },
     },
   });
+
+  if (isTrackStock && initialQty > 0) {
+    let locId = input.locationId;
+    if (!locId && prisma.location?.findFirst) {
+      const defaultLoc = await prisma.location.findFirst({
+        where: { shopId: input.shopId },
+        orderBy: { isDefault: "desc" },
+      });
+      locId = defaultLoc?.id;
+    }
+
+    if (locId && prisma.stockBalance?.create) {
+      await prisma.stockBalance.create({
+        data: {
+          shopId: input.shopId,
+          productId: product.id,
+          locationId: locId,
+          quantityOnHand: initialQty,
+          averageCost: input.costPrice ?? 0,
+        },
+      });
+
+      if (prisma.stockMovement?.create) {
+        await prisma.stockMovement.create({
+          data: {
+            shopId: input.shopId,
+            productId: product.id,
+            locationId: locId,
+            movementType: "OPENING_BALANCE",
+            referenceType: "INITIAL_STOCK",
+            referenceId: product.id,
+            quantity: initialQty,
+            unitCost: input.costPrice ?? 0,
+            balanceAfter: initialQty,
+            reason: "Initial stock upon product creation",
+          },
+        });
+      }
+    }
+  }
+
+  return product;
 }
 
 export async function updateProduct(
@@ -93,8 +142,8 @@ export async function updateProduct(
       ...(input.barcode !== undefined ? { barcode: input.barcode?.trim() || null } : {}),
       ...(input.modelNumber !== undefined ? { modelNumber: input.modelNumber?.trim() || null } : {}),
       ...(input.isTrackStock !== undefined ? { isTrackStock: input.isTrackStock } : {}),
-      ...(input.costPrice !== undefined ? { costPrice: new Prisma.Decimal(input.costPrice) } : {}),
-      ...(input.sellingPrice !== undefined ? { sellingPrice: new Prisma.Decimal(input.sellingPrice) } : {}),
+      ...(input.costPrice !== undefined ? { costPrice: input.costPrice } : {}),
+      ...(input.sellingPrice !== undefined ? { sellingPrice: input.sellingPrice } : {}),
       ...(input.minStockAlert !== undefined ? { minStockAlert: input.minStockAlert } : {}),
       ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
     },
