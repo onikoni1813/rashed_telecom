@@ -298,7 +298,7 @@ export function DashboardView({
       </div>
 
       {/* =========================================================================
-          2. INTERACTIVE TIMEFRAME FILTER BAR (প্রতিদিনের, সপ্তাহের, মাসের ও বাত্সরিক)
+          2. INTERACTIVE TIMEFRAME FILTER BAR (প্রতিদিনের, সপ্তাহের, মাসের ও বাৎসরিক)
          ========================================================================= */}
       <div className="glass-panel p-4 sm:p-5 rounded-3xl border border-border/80 shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -375,7 +375,7 @@ export function DashboardView({
               }`}
             >
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>বাত্সরিক</span>
+              <span>বাৎসরিক</span>
             </button>
 
             <button

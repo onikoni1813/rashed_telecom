@@ -160,7 +160,7 @@ export function calculatePeriodRange(
     start.setHours(0, 0, 0, 0);
     const end = new Date(now);
     end.setHours(23, 59, 59, 999);
-    return { start, end, label: "চলতি বছরের হিসাব (This Year)" };
+    return { start, end, label: "বাৎসরিক হিসাব (This Year)" };
   }
 
   // Default fallback to today

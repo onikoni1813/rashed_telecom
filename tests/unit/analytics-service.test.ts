@@ -51,7 +51,7 @@ describe("Performance Analytics Service", () => {
 
     it("should calculate range for year", () => {
       const range = calculatePeriodRange("year");
-      expect(range.label).toContain("বছর");
+      expect(range.label).toContain("বাৎসরিক");
       expect(range.start.getMonth()).toBe(0);
       expect(range.start.getDate()).toBe(1);
     });
