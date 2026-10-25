@@ -35,7 +35,7 @@ export async function createSale(input: CreateSaleInput) {
     throw new ValidationError("Cannot create a sale without items.");
   }
 
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // 1. Check or fetch active open CashSession for cashier
     const cashSession = await tx.cashSession.findFirst({
       where: {
@@ -46,7 +46,7 @@ export async function createSale(input: CreateSaleInput) {
     });
 
     // 2. Fetch customer if provided
-    let customer: { id: string; name: string; phone: string; shopId: string; totalDue: Prisma.Decimal } | null = null;
+    let customer: any = null;
     if (input.customerId) {
       customer = await tx.customer.findUnique({
         where: { id: input.customerId },
@@ -58,7 +58,7 @@ export async function createSale(input: CreateSaleInput) {
 
     // 3. Resolve Authoritative Product Pricing & Inventory
     const productIds = input.items.map((it) => it.productId);
-    const products = await tx.product.findMany({
+    const products: any[] = await tx.product.findMany({
       where: {
         shopId: input.shopId,
         id: { in: productIds },
@@ -66,13 +66,13 @@ export async function createSale(input: CreateSaleInput) {
       },
     });
 
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const productMap = new Map<string, any>(products.map((p: any) => [p.id, p]));
 
     let calculatedSubtotal = 0;
     let totalCostOfGoodsSold = 0;
 
     const validatedItems: Array<{
-      product: (typeof products)[0];
+      product: any;
       variantId?: string | null;
       quantity: number;
       unitPrice: number;
@@ -419,9 +419,9 @@ export async function processSaleReturn(input: ProcessReturnInput) {
     throw new ValidationError("Cannot process return without items.");
   }
 
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: any) => {
     // 1. Fetch sale
-    const sale = await tx.sale.findUnique({
+    const sale: any = await tx.sale.findUnique({
       where: { id: input.saleId },
       include: {
         items: {
@@ -438,13 +438,13 @@ export async function processSaleReturn(input: ProcessReturnInput) {
       throw new NotFoundError("Sale not found or does not belong to this shop.");
     }
 
-    const saleItemMap = new Map(sale.items.map((it) => [it.id, it]));
+    const saleItemMap = new Map<string, any>((sale.items || []).map((it: any) => [it.id, it]));
 
     let totalRefundAmount = 0;
     let totalCostOfReturnedGoods = 0;
 
     const validatedReturnItems: Array<{
-      saleItem: (typeof sale.items)[0];
+      saleItem: any;
       quantity: number;
       condition: "GOOD" | "DEFECTIVE";
       unitPrice: number;
@@ -464,7 +464,7 @@ export async function processSaleReturn(input: ProcessReturnInput) {
       }
 
       // Check previously returned quantity
-      const previouslyReturned = saleItem.returnItems.reduce((sum, ri) => sum + ri.quantity, 0);
+      const previouslyReturned = (saleItem.returnItems || []).reduce((sum: number, ri: any) => sum + ri.quantity, 0);
       const remainingReturnable = saleItem.quantity - previouslyReturned;
 
       if (retInput.quantity > remainingReturnable) {
@@ -488,7 +488,7 @@ export async function processSaleReturn(input: ProcessReturnInput) {
           );
         }
 
-        const validSerialIds = new Set(saleItem.serials.map((s) => s.serialNumberId));
+        const validSerialIds = new Set((saleItem.serials || []).map((s: any) => s.serialNumberId));
         for (const sid of retInput.serialNumberIds) {
           if (!validSerialIds.has(sid)) {
             throw new ValidationError(
