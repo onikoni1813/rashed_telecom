@@ -547,7 +547,7 @@ export function PosTerminal({
                 <ShoppingCart className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="font-black text-base text-foreground">বিক্রয় কার্ট (Cart)</h2>
+                <h2 className="font-black text-base text-foreground">বিক্রয় কার্ট</h2>
                 <p className="text-[11px] text-muted-foreground font-medium">গ্রাহক নির্বাচন ও চেকআউট</p>
               </div>
             </div>
@@ -574,7 +574,7 @@ export function PosTerminal({
             <label className="text-xs font-bold text-muted-foreground flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-primary" />
-                <span>গ্রাহক নির্বাচন (Customer)</span>
+                <span>গ্রাহক নির্বাচন</span>
               </span>
               {selectedCustomer && selectedCustomer.totalDue > 0 && (
                 <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
@@ -588,7 +588,7 @@ export function PosTerminal({
               onChange={(e) => setSelectedCustomerId(e.target.value)}
               className="w-full text-xs font-semibold bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground focus:outline-hidden focus:ring-4 focus:ring-primary/15 focus:border-primary shadow-xs transition-all"
             >
-              <option value="">ওয়াক-ইন কাস্টমার (Walk-in Customer / নগদ ক্রেতা)</option>
+              <option value="">ওয়াক-ইন কাস্টমার (নগদ ক্রেতা)</option>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} — {c.phone} {c.totalDue > 0 ? `(বকেয়া: ৳${c.totalDue})` : ""}
@@ -671,7 +671,7 @@ export function PosTerminal({
           {/* Pricing Totals & Discount Card */}
           <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2.5">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>উপ-মোট (Subtotal)</span>
+              <span>উপ-মোট</span>
               <span className="font-extrabold text-foreground">{formatBDT(subtotal)}</span>
             </div>
 
@@ -695,7 +695,7 @@ export function PosTerminal({
             <div className="pt-2 border-t border-border/70 flex items-baseline justify-between">
               <div>
                 <span className="text-xs font-black uppercase text-foreground block">সর্বমোট প্রদেয়</span>
-                <span className="text-[10px] text-muted-foreground font-medium">Net Payable Total</span>
+                <span className="text-[10px] text-muted-foreground font-medium">নিট প্রদেয় বিল</span>
               </div>
               <div className="text-2xl font-black text-primary tracking-tight">
                 {formatBDT(totalAmount)}
@@ -708,7 +708,7 @@ export function PosTerminal({
             <div className="flex items-center justify-between text-xs">
               <span className="font-extrabold text-foreground flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5 text-primary" />
-                <span>পেমেন্ট মাধ্যম (Split Payment)</span>
+                <span>পেমেন্ট মাধ্যম</span>
               </span>
               <span className="text-[11px] text-muted-foreground font-semibold">
                 পরিশোধ: <strong className="text-foreground">{formatBDT(totalPaid)}</strong>

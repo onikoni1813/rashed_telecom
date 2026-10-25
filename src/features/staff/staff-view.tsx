@@ -307,7 +307,7 @@ export function StaffView({
                 className="shimmer-button inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/25 hover:brightness-110 transition-all cursor-pointer"
               >
                 <CreditCard className="w-4 h-4" />
-                <span>বেতন প্রদান করুন (Disburse)</span>
+                <span>বেতন প্রদান করুন</span>
               </button>
             )}
           </div>
@@ -337,7 +337,7 @@ export function StaffView({
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>দৈনিক উপস্থিতি (Attendance)</span>
+          <span>দৈনিক উপস্থিতি</span>
         </button>
 
         <button
@@ -349,7 +349,7 @@ export function StaffView({
           }`}
         >
           <CreditCard className="w-4 h-4" />
-          <span>বেতন ও কমিশন বিতরণ (Payroll)</span>
+          <span>বেতন ও কমিশন বিতরণ</span>
         </button>
       </div>
 
@@ -377,7 +377,7 @@ export function StaffView({
                     <th className="px-5 py-3.5">আইডি কোড</th>
                     <th className="px-4 py-3.5">কর্মচারীর নাম</th>
                     <th className="px-4 py-3.5">পদবী ও বিভাগ</th>
-                    <th className="px-4 py-3.5">রোল (System Role)</th>
+                    <th className="px-4 py-3.5">সিস্টেম রোল</th>
                     <th className="px-4 py-3.5">যোগাযোগ</th>
                     <th className="px-4 py-3.5 text-right">মূল বেতন (৳)</th>
                     <th className="px-4 py-3.5 text-center">উপস্থিতি</th>
@@ -495,12 +495,12 @@ export function StaffView({
                               att.status === "PRESENT" ? "bg-emerald-500" : att.status === "LATE" ? "bg-amber-500" : "bg-rose-500"
                             }`} />
                             {att.status === "PRESENT"
-                              ? "উপস্থিত (Present)"
+                              ? "উপস্থিত"
                               : att.status === "LATE"
-                              ? "বিলম্বিত (Late)"
+                              ? "বিলম্বিত"
                               : att.status === "LEAVE"
-                              ? "ছুটি (Leave)"
-                              : "অনুপস্থিত (Absent)"}
+                              ? "ছুটি"
+                              : "অনুপস্থিত"}
                           </span>
                         </td>
                         <td className="px-4 py-4 text-xs text-muted-foreground font-medium">
@@ -526,7 +526,7 @@ export function StaffView({
             <div>
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-emerald-500" />
-                মাসিক বেতন ও ভাতা প্রদান বিবরণী (Payroll Disbursed)
+                মাসিক বেতন ও ভাতা প্রদান বিবরণী
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 বেতন প্রদানের সাথে সাথে সাধারণ খতিয়ানে (Account 6100 Salaries) সুষম দাখিলা পোস্ট হয়।
@@ -603,7 +603,7 @@ export function StaffView({
             <div className="flex items-center justify-between pb-3 border-b">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
-                নতুন কর্মী যুক্ত করুন (Add Staff Profile)
+                নতুন কর্মী যুক্ত করুন
               </h2>
               <button
                 onClick={() => setIsStaffModalOpen(false)}
@@ -623,7 +623,7 @@ export function StaffView({
             <form onSubmit={handleStaffSubmit} className="mt-4 space-y-3">
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  কর্মচারীর নাম (Full Name) *
+                  কর্মচারীর নাম *
                 </label>
                 <input
                   type="text"
@@ -666,7 +666,7 @@ export function StaffView({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                    পদবী (Designation)
+                    পদবী
                   </label>
                   <input
                     type="text"
@@ -679,7 +679,7 @@ export function StaffView({
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                    সিস্টেম রোল (Role) *
+                    সিস্টেম রোল *
                   </label>
                   <select
                     value={newStaffData.roleId}
@@ -698,7 +698,7 @@ export function StaffView({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                    মূল বেতন (Base Salary ৳) *
+                    মূল বেতন (৳) *
                   </label>
                   <input
                     type="number"
@@ -779,10 +779,10 @@ export function StaffView({
                   }
                   className="w-full px-3 py-2 text-sm rounded-lg border bg-background font-semibold"
                 >
-                  <option value="PRESENT">উপস্থিত (Present)</option>
-                  <option value="LATE">দেরিতে আগমন (Late)</option>
-                  <option value="LEAVE">ছুটি (Leave)</option>
-                  <option value="ABSENT">অনুপস্থিত (Absent)</option>
+                  <option value="PRESENT">উপস্থিত</option>
+                  <option value="LATE">দেরিতে আগমন</option>
+                  <option value="LEAVE">ছুটি</option>
+                  <option value="ABSENT">অনুপস্থিত</option>
                 </select>
               </div>
 
@@ -827,7 +827,7 @@ export function StaffView({
             <div className="flex items-center justify-between pb-3 border-b">
               <h2 className="text-lg font-bold flex items-center gap-2 text-emerald-600">
                 <CreditCard className="w-5 h-5" />
-                মাসিক বেতন ও ভাতা বিতরণ (Disburse Salary)
+                মাসিক বেতন ও ভাতা বিতরণ
               </h2>
               <button
                 onClick={() => setIsPayrollModalOpen(false)}
@@ -872,7 +872,7 @@ export function StaffView({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                    বেতন মাস (YYYY-MM) *
+                    বেতন মাস *
                   </label>
                   <input
                     type="month"
@@ -893,10 +893,10 @@ export function StaffView({
                     }
                     className="w-full px-3 py-2 text-sm rounded-lg border bg-background"
                   >
-                    <option value="CASH">ক্যাশ (Cash on Hand 1000)</option>
-                    <option value="BKASH">বিকাশ (bKash 1010)</option>
-                    <option value="NAGAD">নগদ (Nagad 1010)</option>
-                    <option value="BANK">ব্যাংক অ্যাকাউন্ট (Bank 1010)</option>
+                    <option value="CASH">ক্যাশ (হাতে নগদ)</option>
+                    <option value="BKASH">বিকাশ</option>
+                    <option value="NAGAD">নগদ</option>
+                    <option value="BANK">ব্যাংক অ্যাকাউন্ট</option>
                   </select>
                 </div>
               </div>

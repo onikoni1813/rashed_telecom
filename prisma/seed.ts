@@ -276,21 +276,21 @@ export async function main() {
 
   console.log("Seeding standard categories...");
   const catPhone = await prisma.category.upsert({
-    where: { shopId_name: { shopId: shop.id, name: "Smartphones" } },
+    where: { shopId_name: { shopId: shop.id, name: "স্মার্টফোন" } },
     update: { type: "PHONE" },
-    create: { shopId: shop.id, name: "Smartphones", type: "PHONE" },
+    create: { shopId: shop.id, name: "স্মার্টফোন", type: "PHONE" },
   });
 
   const catAccessory = await prisma.category.upsert({
-    where: { shopId_name: { shopId: shop.id, name: "Mobile Accessories" } },
+    where: { shopId_name: { shopId: shop.id, name: "মোবাইল এক্সেসরিজ" } },
     update: { type: "ACCESSORY" },
-    create: { shopId: shop.id, name: "Mobile Accessories", type: "ACCESSORY" },
+    create: { shopId: shop.id, name: "মোবাইল এক্সেসরিজ", type: "ACCESSORY" },
   });
 
   const catParts = await prisma.category.upsert({
-    where: { shopId_name: { shopId: shop.id, name: "Spare Parts" } },
+    where: { shopId_name: { shopId: shop.id, name: "স্পেয়ার পার্টস" } },
     update: { type: "PART" },
-    create: { shopId: shop.id, name: "Spare Parts", type: "PART" },
+    create: { shopId: shop.id, name: "স্পেয়ার পার্টস", type: "PART" },
   });
 
   console.log("Seeding chart of accounts...");
@@ -606,12 +606,12 @@ export async function main() {
 
   console.log("Seeding standard expense categories...");
   const defaultExpenseCategories = [
-    { name: "দোকান ভাড়া (Shop Rent)", code: "6000" },
-    { name: "বিদ্যুৎ ও ইউটিলিটি বিল (Electricity & Utilities)", code: "6000" },
-    { name: "চা ও আপ্যায়ন (Tea & Entertainment)", code: "6200" },
-    { name: "স্টাফ যাতায়াত (Staff Conveyance)", code: "6200" },
-    { name: "ইন্টারনেট ও বিল (Internet & Phone)", code: "6200" },
-    { name: "অন্যান্য খরচ (Other Expenses)", code: "6200" },
+    { name: "দোকান ভাড়া", code: "6000" },
+    { name: "বিদ্যুৎ ও ইউটিলিটি বিল", code: "6000" },
+    { name: "চা ও আপ্যায়ন", code: "6200" },
+    { name: "স্টাফ যাতায়াত", code: "6200" },
+    { name: "ইন্টারনেট ও ফোন বিল", code: "6200" },
+    { name: "অন্যান্য খরচ", code: "6200" },
   ];
 
   for (const expCat of defaultExpenseCategories) {
@@ -635,7 +635,7 @@ export async function main() {
   const adminStaff = await prisma.staffProfile.upsert({
     where: { shopId_employeeCode: { shopId: shop.id, employeeCode: "EMP-001" } },
     update: {
-      designation: "মালিক ও প্রধান পরিচালক (Owner & Director)",
+      designation: "মালিক ও প্রধান পরিচালক",
       baseSalary: 50000,
       compensationType: "SALARY",
     },
@@ -643,7 +643,7 @@ export async function main() {
       shopId: shop.id,
       userId: adminUser.id,
       employeeCode: "EMP-001",
-      designation: "মালিক ও প্রধান পরিচালক (Owner & Director)",
+      designation: "মালিক ও প্রধান পরিচালক",
       department: "Management",
       joiningDate: new Date("2024-01-01"),
       compensationType: "SALARY",
@@ -655,7 +655,7 @@ export async function main() {
   const techStaff = await prisma.staffProfile.upsert({
     where: { shopId_employeeCode: { shopId: shop.id, employeeCode: "EMP-002" } },
     update: {
-      designation: "সিনিয়র হার্ডওয়্যার টেকনিশিয়ান (Hardware Tech)",
+      designation: "সিনিয়র হার্ডওয়্যার টেকনিশিয়ান",
       baseSalary: 25000,
       commissionRate: 10.0,
     },
@@ -663,7 +663,7 @@ export async function main() {
       shopId: shop.id,
       userId: techUser.id,
       employeeCode: "EMP-002",
-      designation: "সিনিয়র হার্ডওয়্যার টেকনিশিয়ান (Hardware Tech)",
+      designation: "সিনিয়র হার্ডওয়্যার টেকনিশিয়ান",
       department: "Mobile Servicing",
       joiningDate: new Date("2024-03-01"),
       compensationType: "SALARY_PLUS_COMMISSION",
@@ -692,7 +692,7 @@ export async function main() {
       date: today,
       status: "PRESENT",
       checkInTime: new Date(),
-      notes: "সময়মত উপস্থিতি (On-time)",
+      notes: "সময়মত উপস্থিতি",
     },
   });
 

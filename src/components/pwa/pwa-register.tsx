@@ -66,7 +66,7 @@ export function PwaRegister() {
           <Smartphone className="w-5 h-5" />
         </div>
         <div>
-          <div className="font-bold text-xs text-foreground">অ্যাপ ইনস্টল করুন (Install App)</div>
+          <div className="font-bold text-xs text-foreground">অ্যাপ ইনস্টল করুন</div>
           <div className="text-[11px] text-muted-foreground mt-0.5">
             মোবাইল বা পিসিতে অফলাইন দ্রুত ব্যবহারের জন্য ইনস্টল করুন
           </div>

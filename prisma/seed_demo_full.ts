@@ -18,21 +18,21 @@ async function main() {
 
   // 2. Fetch or Create Categories
   const catPhone = await prisma.category.upsert({
-    where: { shopId_name: { shopId, name: "স্মার্টফোন (Smartphones)" } },
+    where: { shopId_name: { shopId, name: "স্মার্টফোন" } },
     update: {},
-    create: { shopId, name: "স্মার্টফোন (Smartphones)" },
+    create: { shopId, name: "স্মার্টফোন" },
   });
 
   const catAccessory = await prisma.category.upsert({
-    where: { shopId_name: { shopId, name: "মোবাইল এক্সেসরিজ (Accessories)" } },
+    where: { shopId_name: { shopId, name: "মোবাইল এক্সেসরিজ" } },
     update: {},
-    create: { shopId, name: "মোবাইল এক্সেসরিজ (Accessories)" },
+    create: { shopId, name: "মোবাইল এক্সেসরিজ" },
   });
 
   const catParts = await prisma.category.upsert({
-    where: { shopId_name: { shopId, name: "সার্ভিসিং স্পেয়ার পার্টস (Parts)" } },
+    where: { shopId_name: { shopId, name: "স্পেয়ার পার্টস" } },
     update: {},
-    create: { shopId, name: "সার্ভিসিং স্পেয়ার পার্টস (Parts)" },
+    create: { shopId, name: "স্পেয়ার পার্টস" },
   });
 
   // 3. Upsert Products
@@ -192,11 +192,11 @@ async function main() {
 
   // 4. Upsert Customers with realistic dues
   const customersData = [
-    { name: "রফিক আহমেদ (Rafiq)", phone: "01819876543", address: "মিরপুর ১০, ঢাকা", totalDue: 1500 },
-    { name: "মো: রাসেল হোসেন (Russel)", phone: "01912344556", address: "উত্তরা সেক্টর ৭, ঢাকা", totalDue: 800 },
-    { name: "সেলিম রেজা (Selim)", phone: "01711223344", address: "ধানমন্ডি ২৭, ঢাকা", totalDue: 0 },
-    { name: "জাহিদুল ইসলাম (Zahid)", phone: "01678990011", address: "ফার্মগেট, ঢাকা", totalDue: 2200 },
-    { name: "মো: আল-আমিন (Al-Amin)", phone: "01712345678", address: "মোহাম্মদপুর, ঢাকা", totalDue: 500 },
+    { name: "রফিক আহমেদ", phone: "01819876543", address: "মিরপুর ১০, ঢাকা", totalDue: 1500 },
+    { name: "মো: রাসেল হোসেন", phone: "01912344556", address: "উত্তরা সেক্টর ৭, ঢাকা", totalDue: 800 },
+    { name: "সেলিম রেজা", phone: "01711223344", address: "ধানমন্ডি ২৭, ঢাকা", totalDue: 0 },
+    { name: "জাহিদুল ইসলাম", phone: "01678990011", address: "ফার্মগেট, ঢাকা", totalDue: 2200 },
+    { name: "মো: আল-আমিন", phone: "01712345678", address: "মোহাম্মদপুর, ঢাকা", totalDue: 500 },
   ];
 
   const customerList: any[] = [];
@@ -240,7 +240,7 @@ async function main() {
       customer: customerList[0],
       deviceBrand: "Samsung",
       deviceModel: "Galaxy S22 Ultra",
-      reportedIssue: "ডিসপ্লে গ্রিন লাইন সমস্যা (OLED Bonding Repair)",
+      reportedIssue: "ডিসপ্লে গ্রিন লাইন সমস্যা",
       status: "REPAIRING",
       labourCost: 2500,
       partsCost: 1000,
@@ -258,7 +258,7 @@ async function main() {
       customer: customerList[1],
       deviceBrand: "Apple",
       deviceModel: "iPhone 13 Pro Max",
-      reportedIssue: "হোয়াইট স্ক্রিন অফ ডেথ (White Screen IC Jumper)",
+      reportedIssue: "হোয়াইট স্ক্রিন সমস্যা",
       status: "DIAGNOSING",
       labourCost: 3000,
       partsCost: 500,

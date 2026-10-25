@@ -638,7 +638,7 @@ export function RepairBoard({
               </div>
 
               <div>
-                <label className="block font-medium text-foreground mb-1">সাথে থাকা এক্সেসরিজ (Accessories)</label>
+                <label className="block font-medium text-foreground mb-1">সাথে থাকা এক্সেসরিজ</label>
                 <input
                   type="text"
                   value={intakeAccessories}

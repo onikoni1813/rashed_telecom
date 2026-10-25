@@ -192,7 +192,7 @@ export function StatementsView({
               className="shimmer-button inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-cyan-500/25 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>প্রিন্ট / পিডিএফ (Print Statement)</span>
+              <span>প্রিন্ট / পিডিএফ</span>
             </button>
           )}
         </div>
@@ -214,7 +214,7 @@ export function StatementsView({
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>গ্রাহক স্টেটমেন্ট (Customer Ledger)</span>
+            <span>গ্রাহক স্টেটমেন্ট</span>
           </button>
           <button
             onClick={() => {
@@ -228,7 +228,7 @@ export function StatementsView({
             }`}
           >
             <Truck className="w-4 h-4" />
-            <span>সরবরাহকারী স্টেটমেন্ট (Supplier Ledger)</span>
+            <span>সরবরাহকারী স্টেটমেন্ট</span>
           </button>
         </div>
 
@@ -274,7 +274,7 @@ export function StatementsView({
 
           <div>
             <label className="block text-xs font-bold text-foreground mb-1.5">
-              শুরুর তারিখ (Start Date)
+              শুরুর তারিখ
             </label>
             <input
               type="date"
@@ -286,7 +286,7 @@ export function StatementsView({
 
           <div>
             <label className="block text-xs font-bold text-foreground mb-1.5">
-              শেষের তারিখ (End Date)
+              শেষের তারিখ
             </label>
             <input
               type="date"
@@ -322,15 +322,15 @@ export function StatementsView({
           <div className="border-b border-border pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <div className="text-xl font-bold tracking-tight text-foreground">
-                রাশেদ টেলিকম (RASHED TELECOM)
+                রাশেদ টেলিকম
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 কালিগঞ্জ বাজার, ঝিনাইদহ • মোবাইল: ০১৭০০-০০০০০০
               </p>
               <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary/10 text-primary font-semibold text-xs uppercase tracking-wide">
                 {statement.type === "CUSTOMER"
-                  ? "গ্রাহক লেজার খতিয়ান (Customer Ledger Statement)"
-                  : "সরবরাহকারী লেজার খতিয়ান (Supplier Ledger Statement)"}
+                  ? "গ্রাহক লেজার খতিয়ান"
+                  : "সরবরাহকারী লেজার খতিয়ান"}
               </div>
             </div>
 
@@ -365,7 +365,7 @@ export function StatementsView({
 
             <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl">
               <span className="text-xs font-semibold text-blue-500 uppercase tracking-wide">
-                {statement.type === "CUSTOMER" ? "মোট বিল (Invoiced)" : "মোট ক্রয় (Purchased)"}
+                {statement.type === "CUSTOMER" ? "মোট বিল" : "মোট ক্রয়"}
               </span>
               <div className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
                 {formatBDT(statement.totalBilled)}
@@ -374,7 +374,7 @@ export function StatementsView({
 
             <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl">
               <span className="text-xs font-semibold text-emerald-500 uppercase tracking-wide">
-                মোট পরিশোধ (Paid)
+                মোট পরিশোধ
               </span>
               <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
                 {formatBDT(statement.totalPaid)}
@@ -383,7 +383,7 @@ export function StatementsView({
 
             <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl">
               <span className="text-xs font-semibold text-rose-500 uppercase tracking-wide">
-                {statement.type === "CUSTOMER" ? "অবশিষ্ট বকেয়া (Due)" : "প্রদেয় ব্যালেন্স (Payable)"}
+                {statement.type === "CUSTOMER" ? "অবশিষ্ট বকেয়া" : "প্রদেয় ব্যালেন্স"}
               </span>
               <div className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">
                 {formatBDT(statement.closingBalance)}
@@ -398,7 +398,7 @@ export function StatementsView({
                 <tr>
                   <th className="px-3 py-3">তারিখ</th>
                   <th className="px-3 py-3">রেফারেন্স নং</th>
-                  <th className="px-3 py-3">বিবরণ (Particulars)</th>
+                  <th className="px-3 py-3">বিবরণ</th>
                   <th className="px-3 py-3 text-right">ডেবিট (৳)</th>
                   <th className="px-3 py-3 text-right">ক্রেডিট (৳)</th>
                   <th className="px-3 py-3 text-right">রানিং ব্যালেন্স (৳)</th>
@@ -457,7 +457,7 @@ export function StatementsView({
           <div className="hidden print:grid grid-cols-2 pt-16 mt-12 border-t border-dashed border-border text-center text-xs">
             <div>
               <div className="border-t border-black/40 w-44 mx-auto pt-1 font-semibold">
-                প্রস্তুতকারক (Prepared By)
+                প্রস্তুতকারক
               </div>
             </div>
             <div>

@@ -76,7 +76,7 @@ export default async function ProductsPage() {
         <div className="glass-card p-4 sm:p-5 rounded-2xl border border-border/50 hover:border-indigo-500/40 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-muted-foreground">মোট পণ্য (Total)</span>
+            <span className="text-xs font-semibold text-muted-foreground">মোট পণ্য</span>
             <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
               <Box className="w-4 h-4" />
             </div>
@@ -171,7 +171,7 @@ export default async function ProductsPage() {
                 <th className="px-4 py-3.5">SKU / বারকোড</th>
                 <th className="px-4 py-3.5 text-right">ক্রয় মূল্য</th>
                 <th className="px-4 py-3.5 text-right">বিক্রয় মূল্য</th>
-                <th className="px-4 py-3.5 text-center">মজুদ (Stock)</th>
+                <th className="px-4 py-3.5 text-center">মজুদ স্টক</th>
                 <th className="px-4 py-3.5 text-center">স্ট্যাটাস</th>
               </tr>
             </thead>
