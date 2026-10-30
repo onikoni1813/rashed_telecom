@@ -47,7 +47,7 @@ describe("Settings Service Unit Tests", () => {
             id: "mem-1",
             userId: actorId,
             isActive: true,
-            user: { fullName: "Rashed Ahmed", email: "rashed@telecom.bd", phone: "01700000000" },
+            user: { fullName: "Rashed Sarkar", email: "rashedsarkarofficial@gmail.com", phone: "01521378476" },
             role: { name: "OWNER" },
           },
         ],

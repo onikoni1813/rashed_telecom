@@ -55,14 +55,14 @@ export function SettingsView({ shopId, initialSettings }: SettingsViewProps) {
   const [timezone, setTimezone] = useState(initialSettings.timezone);
 
   // Settings JSON State
-  const [phone, setPhone] = useState(initialSettings.settings.phone || "01700000000");
-  const [address, setAddress] = useState(initialSettings.settings.address || "সেন্ট্রাল বাসস্ট্যান্ড রোড, কালীগঞ্জ, ঝিনাইদহ");
-  const [email, setEmail] = useState(initialSettings.settings.email || "rashed@telecom.bd");
+  const [phone, setPhone] = useState(initialSettings.settings.phone || "01521378476");
+  const [address, setAddress] = useState(initialSettings.settings.address || "কালিয়াকৈর বাজার, কালিয়াকৈর, গাজীপুর");
+  const [email, setEmail] = useState(initialSettings.settings.email || "rashedsarkarofficial@gmail.com");
   const [taxNumber, setTaxNumber] = useState(initialSettings.settings.taxNumber || "BIN-9812456712");
 
   // Receipt Settings
   const [receiptHeader, setReceiptHeader] = useState(
-    initialSettings.settings.receiptHeader || "রাশেদ টেলিকম\nমোবাইল সেলস ও অত্যাধুনিক সার্ভিসিং সেন্টার\nফোন: 01700000000"
+    initialSettings.settings.receiptHeader || "রাশেদ টেলিকম\nমোবাইল বিক্রয় ও সার্ভিসিং সেন্টার\nফোন: 01521378476"
   );
   const [receiptFooter, setReceiptFooter] = useState(
     initialSettings.settings.receiptFooter || "বিক্রিত পণ্য ৭ দিনের মধ্যে মেমোসহ ফেরতযোগ্য।\nডিসপ্লে ও ব্যাটারিতে ৩০ দিনের সার্ভিস ওয়ারেন্টি।"

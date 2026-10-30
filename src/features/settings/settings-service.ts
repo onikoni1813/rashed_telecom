@@ -58,9 +58,9 @@ export interface UpdateShopSettingsInput {
 }
 
 const DEFAULT_SETTINGS_CONFIG: ShopSettingsConfig = {
-  phone: "01700000000",
-  address: "সেন্ট্রাল বাসস্ট্যান্ড রোড, কালীগঞ্জ, ঝিনাইদহ",
-  email: "rashed@telecom.bd",
+  phone: "01521378476",
+  address: "কালিয়াকৈর বাজার, কালিয়াকৈর, গাজীপুর",
+  email: "rashedsarkarofficial@gmail.com",
   taxNumber: "BIN-9812456712",
   receiptHeader: "রাশেদ টেলিকম\nমোবাইল সেলস ও অত্যাধুনিক সার্ভিসিং সেন্টার\nফোন: 01700000000",
   receiptFooter: "বিক্রিত পণ্য ৭ দিনের মধ্যে মেমোসহ ফেরতযোগ্য।\nডিসপ্লে ও ব্যাটারিতে ৩০ দিনের সার্ভিস ওয়ারেন্টি।\nআমাদের সেবায় আস্থা রাখার জন্য ধন্যবাদ!",

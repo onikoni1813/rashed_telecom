@@ -136,8 +136,8 @@ export function CashMemo({
     nameEn: "RASHED TELECOM",
     tagline: "মোবাইল বিক্রয়, সার্ভিসিং ও আধুনিক এক্সেসরিজ",
     address: "কালিয়াকৈর বাজার, কালিয়াকৈর, গাজীপুর",
-    phone: "০১৭০০-০০০০০০, ০১৮০০-০০০০০০",
-    email: "rashedtelecom@gmail.com",
+    phone: "01521378476",
+    email: "rashedsarkarofficial@gmail.com",
   };
 
   return (

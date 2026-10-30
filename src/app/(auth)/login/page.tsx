@@ -285,9 +285,6 @@ export default function LoginPage() {
               <Lock className="w-3.5 h-3.5 text-blue-400" />
               <span>পিন কোড প্রবেশ করান</span>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">
-              ডিফল্ট: 1234
-            </span>
           </div>
 
           {/* Masked PIN Display */}

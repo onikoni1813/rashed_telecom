@@ -16,10 +16,12 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  KeyRound,
 } from "lucide-react";
 import { Locale } from "@/types";
 import { getDictionary, formatDhakaDate } from "@/lib/i18n";
 import { OfflineIndicator } from "@/components/pwa/offline-indicator";
+import { ChangePinModal } from "@/components/auth/change-pin-modal";
 import {
   registerBiometricDevice,
   isBiometricsSupported,
@@ -43,12 +45,13 @@ export function Topbar({ locale, onLocaleChange }: TopbarProps) {
   const [currentDateStr, setCurrentDateStr] = useState<string>("");
   const [user, setUser] = useState<UserProfile>({
     id: "00000000-0000-0000-0000-000000000001",
-    name: "Rashed Ahmed",
-    email: "admin@rashedtelecom.local",
+    name: "Rashed Sarkar",
+    email: "rashedsarkarofficial@gmail.com",
     role: "মালিক (Owner)",
   });
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
   const [bioModalOpen, setBioModalOpen] = useState(false);
   const [bioLoading, setBioLoading] = useState(false);
   const [bioMessage, setBioMessage] = useState<string | null>(null);
@@ -236,6 +239,19 @@ export function Topbar({ locale, onLocaleChange }: TopbarProps) {
                     </button>
                   )}
 
+                  {/* Change PIN */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setPinModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl hover:bg-muted text-foreground transition-colors"
+                  >
+                    <KeyRound className="w-4 h-4 text-amber-500" />
+                    <span>পিন পরিবর্তন করুন</span>
+                  </button>
+
                   {/* Settings Link */}
                   <Link
                     href="/app/settings"
@@ -323,6 +339,13 @@ export function Topbar({ locale, onLocaleChange }: TopbarProps) {
           </div>
         </div>
       )}
+
+      {/* Change PIN Modal */}
+      <ChangePinModal
+        isOpen={pinModalOpen}
+        onClose={() => setPinModalOpen(false)}
+        userId={user.id}
+      />
     </>
   );
 }

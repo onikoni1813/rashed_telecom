@@ -136,9 +136,9 @@ describe("Staff, Payroll, Approvals & Operations API Integration", () => {
           baseSalary: 25000 as any,
           user: {
             id: ownerId,
-            fullName: "Rashed Ahmed",
-            phone: "01700000000",
-            email: "owner@rashedtelecom.com",
+            fullName: "Rashed Sarkar",
+            phone: "01521378476",
+            email: "rashedsarkarofficial@gmail.com",
             memberships: [],
           },
           attendanceRecords: [],
@@ -182,7 +182,7 @@ describe("Staff, Payroll, Approvals & Operations API Integration", () => {
             employeeCode: "EMP-001",
             user: { fullName: "Tanvir Ahmed" },
           },
-          paidBy: { fullName: "Rashed Ahmed" },
+          paidBy: { fullName: "Rashed Sarkar" },
         },
       ]);
 
@@ -278,7 +278,7 @@ describe("Staff, Payroll, Approvals & Operations API Integration", () => {
         reviewedAt: new Date(),
         reviewReason: "Verified battery loss with supplier",
         requestedBy: { id: cashierId, fullName: "Cashier Tanvir" },
-        reviewedBy: { id: ownerId, fullName: "Rashed Ahmed" },
+        reviewedBy: { id: ownerId, fullName: "Rashed Sarkar" },
       });
 
       const req = new Request("http://localhost/api/v1/approvals/req-1/review", {
@@ -371,7 +371,7 @@ describe("Staff, Payroll, Approvals & Operations API Integration", () => {
           entityId: "staff-1",
           reason: "Created staff profile",
           createdAt: new Date(),
-          actor: { id: ownerId, fullName: "Rashed Ahmed", email: "owner@rashedtelecom.com" },
+          actor: { id: ownerId, fullName: "Rashed Sarkar", email: "rashedsarkarofficial@gmail.com" },
         },
       ]);
       (prisma.auditLog.count as any).mockResolvedValue(1);

@@ -239,17 +239,15 @@ export async function main() {
   const adminUser = await prisma.user.upsert({
     where: { id: "00000000-0000-0000-0000-000000000001" },
     update: {
-      email: "admin@rashedtelecom.local",
-      fullName: "Rashed Ahmed (মালিক)",
-      phone: "01700000000",
-      pinHash: defaultPin.hash,
-      pinSalt: defaultPin.salt,
+      email: "rashedsarkarofficial@gmail.com",
+      fullName: "Rashed Sarkar",
+      phone: "01521378476",
     },
     create: {
       id: "00000000-0000-0000-0000-000000000001",
-      email: "admin@rashedtelecom.local",
-      fullName: "Rashed Ahmed (মালিক)",
-      phone: "01700000000",
+      email: "rashedsarkarofficial@gmail.com",
+      fullName: "Rashed Sarkar",
+      phone: "01521378476",
       isActive: true,
       pinHash: defaultPin.hash,
       pinSalt: defaultPin.salt,
