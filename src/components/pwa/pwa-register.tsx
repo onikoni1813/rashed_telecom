@@ -9,9 +9,9 @@ export function PwaRegister() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    // 1. Register Service Worker in production & modern browsers
+    // 1. Register Service Worker immediately
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
+      const registerSW = () => {
         navigator.serviceWorker
           .register("/sw.js")
           .then((reg) => {
@@ -20,7 +20,13 @@ export function PwaRegister() {
           .catch((err) => {
             console.warn("[PWA] Service Worker registration failed:", err);
           });
-      });
+      };
+
+      if (document.readyState === "complete") {
+        registerSW();
+      } else {
+        window.addEventListener("load", registerSW);
+      }
     }
 
     // 2. Capture beforeinstallprompt event
@@ -60,7 +66,7 @@ export function PwaRegister() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 max-w-sm w-full bg-card/95 backdrop-blur-md border border-primary/30 p-4 rounded-xl shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom-5">
+    <div className="fixed bottom-4 right-4 z-50 max-w-sm w-full bg-card/95 backdrop-blur-md border border-primary/30 p-4 rounded-xl shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom-5">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
           <Smartphone className="w-5 h-5" />

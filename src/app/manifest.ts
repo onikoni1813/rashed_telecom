@@ -2,10 +2,11 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/",
     name: "রাশেদ টেলিকম — শপ ম্যানেজমেন্ট",
     short_name: "Rashed Telecom",
     description: "টেলিকম পণ্য বিক্রয়, মোবাইল সার্ভিসিং ও হিসাব ব্যবস্থাপনা",
-    start_url: "/app",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     background_color: "#020617",
@@ -16,27 +17,27 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["business", "finance", "productivity", "utilities"],
     icons: [
       {
-        src: "/icons/icon-192.jpg",
+        src: "/icons/icon-192.png",
         sizes: "192x192",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icons/icon-192.jpg",
+        src: "/icons/icon-192.png",
         sizes: "192x192",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "maskable",
       },
       {
-        src: "/icons/icon-512.jpg",
+        src: "/icons/icon-512.png",
         sizes: "512x512",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icons/icon-512.jpg",
+        src: "/icons/icon-512.png",
         sizes: "512x512",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "maskable",
       },
     ],
@@ -45,19 +46,19 @@ export default function manifest(): MetadataRoute.Manifest {
         name: "পিওএস টার্মিনাল",
         url: "/app/pos",
         description: "দ্রুত বিক্রয় ও ইনভয়েস প্রিন্ট",
-        icons: [{ src: "/icons/icon-192.jpg", sizes: "192x192" }],
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
       {
         name: "সার্ভিসিং ল্যাব",
         url: "/app/service",
         description: "মোবাইল মেরামত গ্রহণ ও স্ট্যাটাস আপডেট",
-        icons: [{ src: "/icons/icon-192.jpg", sizes: "192x192" }],
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
       {
         name: "পণ্য ও স্টক",
         url: "/app/products",
         description: "পণ্য তালিকা ও ইনভেন্টরি চেক",
-        icons: [{ src: "/icons/icon-192.jpg", sizes: "192x192" }],
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
     ],
   };

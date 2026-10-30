@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { PwaRegister } from "@/components/pwa/pwa-register";
 
 export const metadata: Metadata = {
-  title: "Rashed Telecom — Shop Management PWA",
-  description: "Enterprise management PWA for telecom sales and mobile servicing in Bangladesh",
+  title: "রাশেদ টেলিকম — শপ ম্যানেজমেন্ট",
+  description: "টেলিকম পণ্য বিক্রয়, মোবাইল সার্ভিসিং ও অ্যাকাউন্টিং পিডব্লিউএ",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
-    apple: "/icons/icon-192.jpg",
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-192.png",
   },
 };
 
@@ -27,10 +28,12 @@ export default function RootLayout({
   return (
     <html lang="bn" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         {children}
+        <PwaRegister />
       </body>
     </html>
   );

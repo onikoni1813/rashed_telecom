@@ -4,7 +4,6 @@ import React from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
-import { PwaRegister } from "@/components/pwa/pwa-register";
 import { Locale } from "@/types";
 
 interface AppShellProps {
@@ -34,11 +33,6 @@ export function AppShell({ children }: AppShellProps) {
       {/* Mobile Bottom Navigation */}
       <div className="print:hidden">
         <MobileNav locale={locale} />
-      </div>
-
-      {/* PWA Service Worker & Install Prompt */}
-      <div className="print:hidden">
-        <PwaRegister />
       </div>
     </div>
   );

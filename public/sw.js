@@ -1,15 +1,18 @@
 // Service Worker for Rashed Telecom Shop Management PWA
 // Architecture defined in Master_plan.md (Sections 10, 16, 17)
 
-const CACHE_NAME = "rashed-telecom-v1";
+const CACHE_NAME = "rashed-telecom-v2";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_ASSETS = [
   "/",
+  "/login",
   "/app",
   "/offline.html",
   "/favicon.ico",
   "/manifest.json",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
   "/icons/icon-192.jpg",
   "/icons/icon-512.jpg",
 ];
