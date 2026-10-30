@@ -1,5 +1,6 @@
 import "dotenv/config";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { hashPin } from "../src/lib/auth/local-session";
 
 const prisma = new PrismaClient();
 
@@ -141,6 +142,16 @@ export const STARTER_ACCOUNTS = [
   { code: "6300", name: "Interest Expense", type: "EXPENSE" },
 ];
 
+export const STANDARD_EXPENSE_CATEGORIES = [
+  { name: "দোকান ভাড়া", code: "EXP-RENT" },
+  { name: "বিদ্যুৎ ও ইউটিলিটি", code: "EXP-UTIL" },
+  { name: "কর্মী বেতন ও কমিশন", code: "EXP-SALARY" },
+  { name: "চা, নাস্তা ও মেহমানদারি", code: "EXP-ENT" },
+  { name: "যন্ত্রপাতি ও টুলস ক্রয়", code: "EXP-TOOLS" },
+  { name: "পরিবহন ও কুরিয়ার", code: "EXP-TRANS" },
+  { name: "অন্যান্য বিবিধ খরচ", code: "EXP-MISC" },
+];
+
 export async function main() {
   console.log("Seeding system permissions...");
   const permissionMap = new Map<string, string>();
@@ -203,10 +214,14 @@ export async function main() {
     }
   }
 
-  console.log("Seeding default demo shop (Rashed Telecom)...");
+  console.log("Seeding shop profile (Rashed Telecom)...");
   const shop = await prisma.shop.upsert({
     where: { id: "11111111-1111-1111-1111-111111111111" },
-    update: {},
+    update: {
+      name: "Rashed Telecom",
+      currency: "BDT",
+      timezone: "Asia/Dhaka",
+    },
     create: {
       id: "11111111-1111-1111-1111-111111111111",
       name: "Rashed Telecom",
@@ -214,25 +229,30 @@ export async function main() {
       timezone: "Asia/Dhaka",
       settings: {
         offlineSyncEnabled: true,
-        receiptHeader: "রাশেদ টেলিকম\nমোবাইল ও সার্ভিসিং সেন্টার\nফোন: 01700000000",
+        receiptHeader: "রাশেদ টেলিকম\nমোবাইল বিক্রয় ও সার্ভিসিং সেন্টার\nফোন: 01700000000",
       },
     },
   });
 
-  console.log("Seeding demo admin user...");
+  console.log("Seeding admin/owner user with default PIN...");
+  const defaultPin = hashPin("1234");
   const adminUser = await prisma.user.upsert({
     where: { id: "00000000-0000-0000-0000-000000000001" },
     update: {
       email: "admin@rashedtelecom.local",
-      fullName: "Rashed (Admin)",
+      fullName: "Rashed Ahmed (মালিক)",
       phone: "01700000000",
+      pinHash: defaultPin.hash,
+      pinSalt: defaultPin.salt,
     },
     create: {
       id: "00000000-0000-0000-0000-000000000001",
       email: "admin@rashedtelecom.local",
-      fullName: "Rashed (Admin)",
+      fullName: "Rashed Ahmed (মালিক)",
       phone: "01700000000",
       isActive: true,
+      pinHash: defaultPin.hash,
+      pinSalt: defaultPin.salt,
     },
   });
 
@@ -259,7 +279,7 @@ export async function main() {
   }
 
   console.log("Seeding default stock location...");
-  const location = await prisma.location.upsert({
+  await prisma.location.upsert({
     where: {
       shopId_name: {
         shopId: shop.id,
@@ -275,19 +295,19 @@ export async function main() {
   });
 
   console.log("Seeding standard categories...");
-  const catPhone = await prisma.category.upsert({
+  await prisma.category.upsert({
     where: { shopId_name: { shopId: shop.id, name: "স্মার্টফোন" } },
     update: { type: "PHONE" },
     create: { shopId: shop.id, name: "স্মার্টফোন", type: "PHONE" },
   });
 
-  const catAccessory = await prisma.category.upsert({
+  await prisma.category.upsert({
     where: { shopId_name: { shopId: shop.id, name: "মোবাইল এক্সেসরিজ" } },
     update: { type: "ACCESSORY" },
     create: { shopId: shop.id, name: "মোবাইল এক্সেসরিজ", type: "ACCESSORY" },
   });
 
-  const catParts = await prisma.category.upsert({
+  await prisma.category.upsert({
     where: { shopId_name: { shopId: shop.id, name: "স্পেয়ার পার্টস" } },
     update: { type: "PART" },
     create: { shopId: shop.id, name: "স্পেয়ার পার্টস", type: "PART" },
@@ -312,309 +332,8 @@ export async function main() {
     });
   }
 
-  console.log("Seeding demo regular customer...");
-  const customer = await prisma.customer.upsert({
-    where: {
-      shopId_phone: {
-        shopId: shop.id,
-        phone: "01712345678",
-      },
-    },
-    update: {},
-    create: {
-      shopId: shop.id,
-      name: "Md. Al-Amin",
-      phone: "01712345678",
-      email: "alamin@gmail.com",
-      address: "Dhanmondi, Dhaka",
-    },
-  });
-
-  console.log("Seeding sample verified supplier...");
-  await prisma.supplier.upsert({
-    where: {
-      shopId_name: {
-        shopId: shop.id,
-        name: "Smart Technologies (BD) Ltd",
-      },
-    },
-    update: {},
-    create: {
-      shopId: shop.id,
-      name: "Smart Technologies (BD) Ltd",
-      contactPerson: "Md. Karim",
-      phone: "01811223344",
-      email: "orders@smart-bd.com",
-      address: "Dhaka, Bangladesh",
-    },
-  });
-
-  console.log("Seeding verified stock items for POS checkout...");
-  // 1. Samsung Galaxy A15
-  const productPhone = await prisma.product.upsert({
-    where: { shopId_sku: { shopId: shop.id, sku: "SAM-A15-128" } },
-    update: {},
-    create: {
-      shopId: shop.id,
-      categoryId: catPhone.id,
-      name: "Samsung Galaxy A15 (6GB/128GB)",
-      brand: "Samsung",
-      sku: "SAM-A15-128",
-      barcode: "8801234567890",
-      modelNumber: "SM-A155F",
-      isTrackStock: true,
-      costPrice: 18500,
-      sellingPrice: 21500,
-      minStockAlert: 2,
-    },
-  });
-
-  // 2. Anker Fast Charger 20W
-  const productCharger = await prisma.product.upsert({
-    where: { shopId_sku: { shopId: shop.id, sku: "ANK-20W-CHG" } },
-    update: {},
-    create: {
-      shopId: shop.id,
-      categoryId: catAccessory.id,
-      name: "Anker PowerPort III 20W Fast Charger",
-      brand: "Anker",
-      sku: "ANK-20W-CHG",
-      barcode: "194644021234",
-      isTrackStock: true,
-      costPrice: 950,
-      sellingPrice: 1350,
-      minStockAlert: 5,
-    },
-  });
-
-  // 3. Samsung Galaxy A15 Replacement Display
-  const productDisplay = await prisma.product.upsert({
-    where: { shopId_sku: { shopId: shop.id, sku: "PART-DISP-SAM-A15" } },
-    update: {},
-    create: {
-      shopId: shop.id,
-      categoryId: catParts.id,
-      name: "Original AMOLED Display for Samsung A15",
-      brand: "Samsung",
-      sku: "PART-DISP-SAM-A15",
-      modelNumber: "SM-A155F",
-      isTrackStock: true,
-      costPrice: 1800,
-      sellingPrice: 2800,
-      minStockAlert: 3,
-    },
-  });
-
-  // 4. Samsung Galaxy A15 Replacement Battery
-  const productBattery = await prisma.product.upsert({
-    where: { shopId_sku: { shopId: shop.id, sku: "PART-BAT-SAM-A15" } },
-    update: {},
-    create: {
-      shopId: shop.id,
-      categoryId: catParts.id,
-      name: "5000mAh Battery for Samsung Galaxy A15",
-      brand: "Samsung",
-      sku: "PART-BAT-SAM-A15",
-      modelNumber: "EB-BA156ABY",
-      isTrackStock: true,
-      costPrice: 850,
-      sellingPrice: 1500,
-      minStockAlert: 5,
-    },
-  });
-
-  // Seed on-hand stock balances & historical movements
-  const stockItems = [
-    { product: productPhone, qty: 5, cost: 18500 },
-    { product: productCharger, qty: 20, cost: 950 },
-    { product: productDisplay, qty: 10, cost: 1800 },
-    { product: productBattery, qty: 15, cost: 850 },
-  ];
-
-  for (const item of stockItems) {
-    const existingBal = await prisma.stockBalance.findFirst({
-      where: {
-        shopId: shop.id,
-        productId: item.product.id,
-        locationId: location.id,
-      },
-    });
-
-    if (!existingBal) {
-      await prisma.stockBalance.create({
-        data: {
-          shopId: shop.id,
-          productId: item.product.id,
-          locationId: location.id,
-          quantityOnHand: item.qty,
-          averageCost: item.cost,
-        },
-      });
-
-      await prisma.stockMovement.create({
-        data: {
-          shopId: shop.id,
-          productId: item.product.id,
-          locationId: location.id,
-          movementType: "PURCHASE_RECEIPT",
-          referenceType: "OpeningStock",
-          quantity: item.qty,
-          unitCost: item.cost,
-          balanceAfter: item.qty,
-          reason: "Initial opening stock setup",
-          actorId: adminUser.id,
-        },
-      });
-    }
-  }
-
-  // Seed Serial/IMEI numbers for the Samsung Galaxy A15
-  const sampleImeis = [
-    { imei1: "354123456789011", imei2: "354123456789012" },
-    { imei1: "354123456789021", imei2: "354123456789022" },
-    { imei1: "354123456789031", imei2: "354123456789032" },
-  ];
-
-  for (const imei of sampleImeis) {
-    const exists = await prisma.serialNumber.findFirst({
-      where: { shopId: shop.id, imei1: imei.imei1 },
-    });
-    if (!exists) {
-      await prisma.serialNumber.create({
-        data: {
-          shopId: shop.id,
-          productId: productPhone.id,
-          imei1: imei.imei1,
-          imei2: imei.imei2,
-          status: "IN_STOCK",
-        },
-      });
-    }
-  }
-
-  // Seed Technician User
-  const techUser = await prisma.user.upsert({
-    where: { email: "tech@rashedtelecom.local" },
-    update: {},
-    create: {
-      id: "00000000-0000-0000-0000-000000000002",
-      email: "tech@rashedtelecom.local",
-      fullName: "Kamrul Hasan (Senior Tech)",
-      phone: "01899001122",
-      isActive: true,
-    },
-  });
-
-  const techRole = await prisma.role.findFirst({
-    where: { name: "TECHNICIAN", isSystem: true },
-  });
-
-  if (techRole) {
-    await prisma.shopMember.upsert({
-      where: {
-        shopId_userId: {
-          shopId: shop.id,
-          userId: techUser.id,
-        },
-      },
-      update: { roleId: techRole.id },
-      create: {
-        shopId: shop.id,
-        userId: techUser.id,
-        roleId: techRole.id,
-        isActive: true,
-      },
-    });
-  }
-
-  // Seed Demo Service Job (JOB-000001)
-  const existingJob = await prisma.serviceJob.findFirst({
-    where: { shopId: shop.id, jobNumber: "JOB-000001" },
-  });
-
-  if (!existingJob) {
-    const demoJob = await prisma.serviceJob.create({
-      data: {
-        shopId: shop.id,
-        jobNumber: "JOB-000001",
-        customerId: customer.id,
-        deviceBrand: "Samsung",
-        deviceModel: "Galaxy A15",
-        deviceImei: "354123456789099",
-        deviceColor: "Blue Black",
-        intakeCondition: "Front glass shattered, touch unresponsive, frame lightly scratched",
-        accessoriesReceived: "Phone with SIM tray only, no charger, no box",
-        reportedIssue: "Display broken after drop, touch not responding",
-        status: "DIAGNOSING",
-        assignedTechnicianId: techUser.id,
-        intakeCashierId: adminUser.id,
-        estimatedCost: 3300,
-        labourCost: 500,
-        partsCost: 2800,
-        totalAmount: 3300,
-        paidAmount: 0,
-        dueAmount: 3300,
-        paymentStatus: "PENDING",
-        notes: "Customer needs delivery by tomorrow evening",
-        statusHistory: {
-          create: [
-            {
-              fromStatus: "INTAKE",
-              toStatus: "INTAKE",
-              changedById: adminUser.id,
-              notes: "Device received at counter",
-            },
-            {
-              fromStatus: "INTAKE",
-              toStatus: "DIAGNOSING",
-              changedById: techUser.id,
-              notes: "Device transferred to repair bench for diagnosis",
-            },
-          ],
-        },
-        diagnostics: {
-          create: {
-            technicianId: techUser.id,
-            diagnosisFindings: "Display panel damaged. Motherboard and battery functioning normally. Requires display replacement.",
-            estimatedLabour: 500,
-            estimatedParts: 2800,
-            customerApproved: true,
-            approvedAt: new Date(),
-            customerNotes: "Customer agreed on phone call for original display replacement",
-          },
-        },
-      },
-    });
-  }
-
-  // Open active cash session for cashier
-  const activeSession = await prisma.cashSession.findFirst({
-    where: { shopId: shop.id, status: "OPEN" },
-  });
-
-  if (!activeSession) {
-    await prisma.cashSession.create({
-      data: {
-        shopId: shop.id,
-        cashierId: adminUser.id,
-        openingCash: 5000,
-        status: "OPEN",
-        notes: "Daily opening session for Rashed Telecom Main Register",
-      },
-    });
-  }
-
   console.log("Seeding standard expense categories...");
-  const defaultExpenseCategories = [
-    { name: "দোকান ভাড়া", code: "6000" },
-    { name: "বিদ্যুৎ ও ইউটিলিটি বিল", code: "6000" },
-    { name: "চা ও আপ্যায়ন", code: "6200" },
-    { name: "স্টাফ যাতায়াত", code: "6200" },
-    { name: "ইন্টারনেট ও ফোন বিল", code: "6200" },
-    { name: "অন্যান্য খরচ", code: "6200" },
-  ];
-
-  for (const expCat of defaultExpenseCategories) {
+  for (const expCat of STANDARD_EXPENSE_CATEGORIES) {
     await prisma.expenseCategory.upsert({
       where: {
         shopId_name: {
@@ -631,12 +350,12 @@ export async function main() {
     });
   }
 
-  console.log("Seeding staff profiles & attendance...");
-  const adminStaff = await prisma.staffProfile.upsert({
+  console.log("Seeding owner staff profile...");
+  await prisma.staffProfile.upsert({
     where: { shopId_employeeCode: { shopId: shop.id, employeeCode: "EMP-001" } },
     update: {
       designation: "মালিক ও প্রধান পরিচালক",
-      baseSalary: 50000,
+      baseSalary: 0,
       compensationType: "SALARY",
     },
     create: {
@@ -645,93 +364,19 @@ export async function main() {
       employeeCode: "EMP-001",
       designation: "মালিক ও প্রধান পরিচালক",
       department: "Management",
-      joiningDate: new Date("2024-01-01"),
+      joiningDate: new Date(),
       compensationType: "SALARY",
-      baseSalary: 50000,
+      baseSalary: 0,
       isActive: true,
     },
   });
 
-  const techStaff = await prisma.staffProfile.upsert({
-    where: { shopId_employeeCode: { shopId: shop.id, employeeCode: "EMP-002" } },
-    update: {
-      designation: "সিনিয়র হার্ডওয়্যার টেকনিশিয়ান",
-      baseSalary: 25000,
-      commissionRate: 10.0,
-    },
-    create: {
-      shopId: shop.id,
-      userId: techUser.id,
-      employeeCode: "EMP-002",
-      designation: "সিনিয়র হার্ডওয়্যার টেকনিশিয়ান",
-      department: "Mobile Servicing",
-      joiningDate: new Date("2024-03-01"),
-      compensationType: "SALARY_PLUS_COMMISSION",
-      baseSalary: 25000,
-      commissionRate: 10.0,
-      isActive: true,
-    },
-  });
-
-  // Seed Today Attendance
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  await prisma.attendanceRecord.upsert({
-    where: {
-      shopId_staffProfileId_date: {
-        shopId: shop.id,
-        staffProfileId: techStaff.id,
-        date: today,
-      },
-    },
-    update: {},
-    create: {
-      shopId: shop.id,
-      staffProfileId: techStaff.id,
-      date: today,
-      status: "PRESENT",
-      checkInTime: new Date(),
-      notes: "সময়মত উপস্থিতি",
-    },
-  });
-
-  // Seed Pending Maker-Checker Approval Request
-  const pendingCount = await prisma.approvalRequest.count({ where: { shopId: shop.id } });
-  if (pendingCount === 0) {
-    await prisma.approvalRequest.create({
-      data: {
-        shopId: shop.id,
-        requestType: "STOCK_ADJUSTMENT",
-        referenceId: "ADJ-0001",
-        requestedById: techUser.id,
-        status: "PENDING",
-        details: {
-          reason: "Damaged battery during testing - request write-off of 1 unit",
-          productName: "Original 5000mAh Battery (Redmi Note 12)",
-          costValue: 1200,
-        },
-      },
-    });
-  }
-
-  // Seed In-App Notification
-  await prisma.notification.create({
-    data: {
-      shopId: shop.id,
-      userId: adminUser.id,
-      title: "সিস্টেম আপডেট সফল",
-      message: "রাশেদ টেলিকম সিস্টেম সফলভাবে Phase 6 এ আপগ্রেড হয়েছে।",
-      type: "INFO",
-      isRead: false,
-    },
-  });
-
-  console.log(`Phase 1, 2, 3, 4, 5 & 6 Seed completed successfully!`);
+  console.log(`\n======================================================`);
+  console.log(`Production Clean Seed completed successfully!`);
   console.log(`- Shop: ${shop.name} (${shop.id})`);
-  console.log(`- Staff Profiles: ${adminStaff.employeeCode}, ${techStaff.employeeCode}`);
-  console.log(`- Attendance Record seeded for today`);
-  console.log(`- Demo Customer: ${customer.name} (${customer.phone})`);
+  console.log(`- Admin/Owner: ${adminUser.fullName} (PIN: 1234)`);
+  console.log(`- Zero demo technicians, zero dummy products, zero fake stock`);
+  console.log(`======================================================\n`);
 }
 
 if (process.env.NODE_ENV !== "test") {
