@@ -74,6 +74,8 @@ export default async function ServicePage() {
       intakeCondition: j.intakeCondition,
       accessoriesReceived: j.accessoriesReceived,
       reportedIssue: j.reportedIssue,
+      screenLockType: (j as any).screenLockType || "NONE",
+      devicePasscode: (j as any).devicePasscode || null,
       status: j.status,
       estimatedCost: Number(j.estimatedCost),
       labourCost: Number(j.labourCost),

@@ -92,6 +92,8 @@ export async function POST(req: Request) {
     const {
       shopId,
       customerId,
+      customerName,
+      customerPhone,
       deviceBrand,
       deviceModel,
       deviceImei,
@@ -99,15 +101,18 @@ export async function POST(req: Request) {
       intakeCondition,
       accessoriesReceived,
       reportedIssue,
+      screenLockType,
+      devicePasscode,
+      estimatedCost,
+      paidAmount,
+      paymentMethod,
       promisedDate,
       assignedTechnicianId,
       notes,
     } = body;
 
-    if (!shopId || !customerId || !deviceBrand || !deviceModel || !intakeCondition || !reportedIssue) {
-      throw new ValidationError(
-        "Missing required fields: 'shopId', 'customerId', 'deviceBrand', 'deviceModel', 'intakeCondition', 'reportedIssue'"
-      );
+    if (!shopId) {
+      throw new ValidationError("Missing required field: 'shopId'");
     }
 
     await requirePermission(authUser.id, shopId, "service.create");
@@ -119,14 +124,21 @@ export async function POST(req: Request) {
       operation: async () => {
         const job = await createServiceJob({
           shopId,
-          customerId,
-          deviceBrand,
-          deviceModel,
-          deviceImei,
-          deviceColor,
-          intakeCondition,
+          customerId: customerId || null,
+          customerName: customerName || null,
+          customerPhone: customerPhone || null,
+          deviceBrand: deviceBrand || null,
+          deviceModel: deviceModel || null,
+          deviceImei: deviceImei || null,
+          deviceColor: deviceColor || null,
+          intakeCondition: intakeCondition || null,
           accessoriesReceived,
-          reportedIssue,
+          reportedIssue: reportedIssue || null,
+          screenLockType: screenLockType || "NONE",
+          devicePasscode: devicePasscode || null,
+          estimatedCost: estimatedCost ? Number(estimatedCost) : 0,
+          paidAmount: paidAmount ? Number(paidAmount) : 0,
+          paymentMethod: paymentMethod || "CASH",
           promisedDate: promisedDate ? new Date(promisedDate) : null,
           assignedTechnicianId,
           intakeCashierId: authUser.id,

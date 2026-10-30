@@ -20,14 +20,21 @@ export const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
 
 export interface CreateServiceJobInput {
   shopId: string;
-  customerId: string;
-  deviceBrand: string;
-  deviceModel: string;
+  customerId?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  deviceBrand?: string | null;
+  deviceModel?: string | null;
   deviceImei?: string | null;
   deviceColor?: string | null;
-  intakeCondition: string;
+  intakeCondition?: string | null;
   accessoriesReceived?: string | null;
-  reportedIssue: string;
+  reportedIssue?: string | null;
+  screenLockType?: string | null;
+  devicePasscode?: string | null;
+  estimatedCost?: number | string | Prisma.Decimal | null;
+  paidAmount?: number | string | Prisma.Decimal | null;
+  paymentMethod?: "CASH" | "BANK" | "BKASH" | "NAGAD" | null;
   promisedDate?: Date | null;
   assignedTechnicianId?: string | null;
   intakeCashierId: string;
@@ -35,36 +42,74 @@ export interface CreateServiceJobInput {
 }
 
 export async function createServiceJob(input: CreateServiceJobInput) {
-  // Validate basic inputs
-  if (!input.deviceBrand || !input.deviceModel || !input.intakeCondition || !input.reportedIssue) {
-    throw new ValidationError(
-      "Missing required fields: deviceBrand, deviceModel, intakeCondition, and reportedIssue are mandatory."
-    );
-  }
+  const deviceBrand = input.deviceBrand?.trim() || "অন্যান্য";
+  const deviceModel = input.deviceModel?.trim() || "সাধারণ মডেল";
+  const intakeCondition = input.intakeCondition?.trim() || "স্বাভাবিক / ব্যবহৃত";
 
-  // Security Check: Enforce NO PIN or Password in intake fields
-  const forbiddenPatterns = [
-    /\b(pin|password|passcode)\b[:\s=]*[a-zA-Z0-9]+/i,
-    /pattern[:\s=]*[a-zA-Z0-9]+/i,
-  ];
-
-  const payloadCombined = `${input.intakeCondition} ${input.reportedIssue} ${input.notes || ""}`;
-  for (const pattern of forbiddenPatterns) {
-    if (pattern.test(payloadCombined)) {
-      throw new ValidationError(
-        "Security policy violation: Storing customer device PINs, passwords, or unlock patterns is strictly prohibited."
-      );
-    }
-  }
+  const estimatedCost = Number(input.estimatedCost || 0);
+  const paidAmount = Number(input.paidAmount || 0);
+  const dueAmount = Math.max(0, estimatedCost - paidAmount);
+  const paymentStatus =
+    paidAmount >= estimatedCost && estimatedCost > 0
+      ? "PAID"
+      : paidAmount > 0
+        ? "PARTIALLY_PAID"
+        : "PENDING";
 
   return await prisma.$transaction(async (tx) => {
-    // 1. Verify customer exists in shop
-    const customer = await tx.customer.findUnique({
-      where: { id: input.customerId },
-    });
+    // 1. Resolve Customer (Optional: from ID, phone, or default walk-in)
+    let customer: any = null;
 
-    if (!customer || customer.shopId !== input.shopId) {
-      throw new NotFoundError("Customer not found or does not belong to this shop.");
+    if (input.customerId) {
+      customer = await tx.customer.findUnique({
+        where: { id: input.customerId },
+      });
+      if (!customer || customer.shopId !== input.shopId) {
+        throw new NotFoundError("Customer not found or does not belong to this shop.");
+      }
+    } else if (input.customerPhone?.trim()) {
+      const phone = input.customerPhone.trim();
+      customer = await tx.customer.findUnique({
+        where: {
+          shopId_phone: {
+            shopId: input.shopId,
+            phone,
+          },
+        },
+      });
+
+      if (!customer) {
+        customer = await tx.customer.create({
+          data: {
+            shopId: input.shopId,
+            name: input.customerName?.trim() || "সার্ভিস কাস্টমার",
+            phone,
+            totalDue: 0,
+          },
+        });
+      }
+    } else {
+      const defaultPhone = "01000000000";
+      customer = await tx.customer.findUnique({
+        where: {
+          shopId_phone: {
+            shopId: input.shopId,
+            phone: defaultPhone,
+          },
+        },
+      });
+
+      if (!customer) {
+        customer = await tx.customer.create({
+          data: {
+            shopId: input.shopId,
+            name: input.customerName?.trim() || "ওয়াক-ইন কাস্টমার",
+            phone: defaultPhone,
+            address: "কাউন্টার ওয়াক-ইন",
+            totalDue: 0,
+          },
+        });
+      }
     }
 
     // 2. Generate sequential unique Job Number
@@ -76,14 +121,21 @@ export async function createServiceJob(input: CreateServiceJobInput) {
       data: {
         shopId: input.shopId,
         jobNumber,
-        customerId: input.customerId,
-        deviceBrand: input.deviceBrand,
-        deviceModel: input.deviceModel,
+        customerId: customer.id,
+        deviceBrand,
+        deviceModel,
         deviceImei: input.deviceImei || null,
         deviceColor: input.deviceColor || null,
-        intakeCondition: input.intakeCondition,
+        intakeCondition,
         accessoriesReceived: input.accessoriesReceived || null,
-        reportedIssue: input.reportedIssue,
+        reportedIssue: input.reportedIssue?.trim() || "কোনো সুনির্দিষ্ট সমস্যা উল্লেখ নেই",
+        screenLockType: input.screenLockType || "NONE",
+        devicePasscode: input.devicePasscode || null,
+        estimatedCost: new Prisma.Decimal(estimatedCost),
+        totalAmount: new Prisma.Decimal(estimatedCost),
+        paidAmount: new Prisma.Decimal(paidAmount),
+        dueAmount: new Prisma.Decimal(dueAmount),
+        paymentStatus,
         status: "INTAKE",
         assignedTechnicianId: input.assignedTechnicianId || null,
         intakeCashierId: input.intakeCashierId,
@@ -106,7 +158,24 @@ export async function createServiceJob(input: CreateServiceJobInput) {
       },
     });
 
-    // 4. Audit Trail
+    // 4. Advance payment record if paidAmount > 0
+    if (paidAmount > 0) {
+      const payCount = await tx.payment.count({ where: { shopId: input.shopId } });
+      const paymentNumber = `PAY-${String(payCount + 1).padStart(6, "0")}`;
+
+      await tx.payment.create({
+        data: {
+          shopId: input.shopId,
+          paymentNumber,
+          customerId: customer.id,
+          amount: new Prisma.Decimal(paidAmount),
+          paymentMethod: input.paymentMethod || "CASH",
+          receivedBy: input.intakeCashierId,
+        },
+      });
+    }
+
+    // 5. Audit Trail
     await recordAuditLog({
       shopId: input.shopId,
       actorId: input.intakeCashierId,
@@ -116,7 +185,7 @@ export async function createServiceJob(input: CreateServiceJobInput) {
       reason: `Intake device ${job.deviceBrand} ${job.deviceModel} (${jobNumber})`,
       afterState: {
         jobNumber,
-        customerId: input.customerId,
+        customerId: customer.id,
         device: `${job.deviceBrand} ${job.deviceModel}`,
       },
     });
@@ -124,6 +193,7 @@ export async function createServiceJob(input: CreateServiceJobInput) {
     return job;
   });
 }
+
 
 export interface UpdateJobStatusInput {
   shopId: string;
@@ -524,7 +594,10 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
     }
 
     const totalAmount = Number(job.totalAmount);
-    const dueAmount = Math.max(0, totalAmount - input.paidAmount);
+    const previouslyPaid = Number(job.paidAmount || 0);
+    const amountPaidNow = Number(input.paidAmount || 0);
+    const newTotalPaid = previouslyPaid + amountPaidNow;
+    const dueAmount = Math.max(0, totalAmount - newTotalPaid);
 
     // 2. Validate Customer Due Policy
     if (dueAmount > 0) {
@@ -540,8 +613,8 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
 
     const paymentStatus: "PAID" | "PARTIALLY_PAID" = dueAmount === 0 ? "PAID" : "PARTIALLY_PAID";
 
-    // 3. Create Payment record if paidAmount > 0
-    if (input.paidAmount > 0) {
+    // 3. Create Payment record if amountPaidNow > 0
+    if (amountPaidNow > 0) {
       const payCount = await tx.payment.count({ where: { shopId: input.shopId } });
       const paymentNumber = `PAY-${String(payCount + 1).padStart(6, "0")}`;
 
@@ -550,7 +623,7 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
           shopId: input.shopId,
           paymentNumber,
           customerId: job.customer.id,
-          amount: new Prisma.Decimal(input.paidAmount),
+          amount: new Prisma.Decimal(amountPaidNow),
           paymentMethod: input.paymentMethod,
           receivedBy: input.deliveredById,
         },
@@ -575,24 +648,20 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
     }
 
     // 5. Balanced Double-Entry Journal Posting:
-    // Debit Cash (1000) for cash payment
-    // Debit Bank/MFS (1010) for digital payment
-    // Debit Accounts Receivable (1100) for remaining due
-    // Credit Service Revenue (4100) for totalAmount
     if (totalAmount > 0) {
       const journalLines: Array<{ accountCode: string; debit?: number; credit?: number; description?: string }> = [];
 
-      if (input.paidAmount > 0) {
+      if (amountPaidNow > 0) {
         if (input.paymentMethod === "CASH") {
           journalLines.push({
             accountCode: "1000",
-            debit: input.paidAmount,
+            debit: amountPaidNow,
             description: `Cash received for repair ${job.jobNumber}`,
           });
         } else {
           journalLines.push({
             accountCode: "1010",
-            debit: input.paidAmount,
+            debit: amountPaidNow,
             description: `MFS/Bank received for repair ${job.jobNumber}`,
           });
         }
@@ -630,7 +699,7 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
       data: {
         status: "DELIVERED",
         deliveryDate: new Date(),
-        paidAmount: new Prisma.Decimal(input.paidAmount),
+        paidAmount: new Prisma.Decimal(newTotalPaid),
         dueAmount: new Prisma.Decimal(dueAmount),
         paymentStatus,
         notes: input.notes || job.notes,
@@ -639,7 +708,7 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
             fromStatus: job.status,
             toStatus: "DELIVERED",
             changedById: input.deliveredById,
-            notes: `Device delivered to customer. Collected: ৳${input.paidAmount}, Due: ৳${dueAmount}`,
+            notes: `Device delivered to customer. Collected: ৳${amountPaidNow}, Total Paid: ৳${newTotalPaid}, Remaining Due: ৳${dueAmount}`,
           },
         },
       },
@@ -650,6 +719,7 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
         statusHistory: true,
       },
     });
+
 
     // 7. Audit Log
     await recordAuditLog({

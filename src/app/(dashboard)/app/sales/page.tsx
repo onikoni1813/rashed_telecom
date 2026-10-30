@@ -81,47 +81,50 @@ export default async function SalesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Receipt className="w-6 h-6 text-primary" />
-            <span>বিক্রয় ও ইনভয়েস (Sales & Invoices)</span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            দৈনিক বিক্রয়ের হিসাব, ক্যাশ মেমো এবং কাস্টমার বকেয়ার বিবরণ
-          </p>
+      {/* Header and KPI Cards wrapped in print:hidden */}
+      <div className="print:hidden space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <Receipt className="w-6 h-6 text-primary" />
+              <span>বিক্রয় ও ইনভয়েস (Sales & Invoices)</span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              দৈনিক বিক্রয়ের হিসাব, ক্যাশ মেমো এবং কাস্টমার বকেয়ার বিবরণ
+            </p>
+          </div>
+
+          <Link
+            href="/app/pos"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-xs hover:bg-primary/90 transition-colors"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            <span>নতুন বিক্রয় (POS টার্মিনাল)</span>
+          </Link>
         </div>
 
-        <Link
-          href="/app/pos"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-xs hover:bg-primary/90 transition-colors"
-        >
-          <ShoppingCart className="w-4 h-4" />
-          <span>নতুন বিক্রয় (POS টার্মিনাল)</span>
-        </Link>
-      </div>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="p-4 rounded-xl border bg-card shadow-2xs">
+            <div className="text-xs text-muted-foreground">মোট বিক্রয় সংখ্যা</div>
+            <div className="text-xl font-bold mt-1 text-foreground">{sales.length}</div>
+          </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border bg-card shadow-2xs">
-          <div className="text-xs text-muted-foreground">মোট বিক্রয় সংখ্যা</div>
-          <div className="text-xl font-bold mt-1 text-foreground">{sales.length}</div>
-        </div>
+          <div className="p-4 rounded-xl border bg-card shadow-2xs">
+            <div className="text-xs text-muted-foreground">মোট রাজস্ব (Total Sales)</div>
+            <div className="text-xl font-bold mt-1 text-foreground">{formatBDT(totalRevenue)}</div>
+          </div>
 
-        <div className="p-4 rounded-xl border bg-card shadow-2xs">
-          <div className="text-xs text-muted-foreground">মোট রাজস্ব (Total Sales)</div>
-          <div className="text-xl font-bold mt-1 text-foreground">{formatBDT(totalRevenue)}</div>
-        </div>
+          <div className="p-4 rounded-xl border bg-card shadow-2xs">
+            <div className="text-xs text-muted-foreground">আদায়কৃত অর্থ (Collected)</div>
+            <div className="text-xl font-bold mt-1 text-emerald-600">{formatBDT(totalPaid)}</div>
+          </div>
 
-        <div className="p-4 rounded-xl border bg-card shadow-2xs">
-          <div className="text-xs text-muted-foreground">আদায়কৃত অর্থ (Collected)</div>
-          <div className="text-xl font-bold mt-1 text-emerald-600">{formatBDT(totalPaid)}</div>
-        </div>
-
-        <div className="p-4 rounded-xl border bg-card shadow-2xs">
-          <div className="text-xs text-muted-foreground">গ্রাহক বকেয়া (Receivable)</div>
-          <div className="text-xl font-bold mt-1 text-rose-600">{formatBDT(totalDue)}</div>
+          <div className="p-4 rounded-xl border bg-card shadow-2xs">
+            <div className="text-xs text-muted-foreground">গ্রাহক বকেয়া (Receivable)</div>
+            <div className="text-xl font-bold mt-1 text-rose-600">{formatBDT(totalDue)}</div>
+          </div>
         </div>
       </div>
 

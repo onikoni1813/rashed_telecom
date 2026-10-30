@@ -92,8 +92,27 @@ model User {
   approvalRequests    ApprovalRequest[]         @relation("ApprovalRequestedBy")
   approvalReviews     ApprovalRequest[]         @relation("ApprovalReviewedBy")
   notifications       Notification[]
+  pinHash             String?                   @map("pin_hash")
+  pinSalt             String?                   @map("pin_salt")
+  credentials         UserCredential[]
 
   @@map("users")
+}
+
+model UserCredential {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  credentialId String    @unique @map("credential_id")
+  publicKey    String    @map("public_key")
+  counter      Int       @default(0)
+  deviceName   String?   @default("Biometric Device") @map("device_name")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastUsedAt   DateTime? @map("last_used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_credentials")
 }
 
 model Role {
@@ -1015,6 +1034,8 @@ model ServiceJob {
   intakeCondition      String    @map("intake_condition")
   accessoriesReceived  String?   @map("accessories_received")
   reportedIssue        String    @map("reported_issue")
+  screenLockType       String?   @default("NONE") @map("screen_lock_type")
+  devicePasscode       String?   @map("device_passcode")
   status               String    @default("INTAKE") // INTAKE, DIAGNOSING, ESTIMATE_PENDING, ESTIMATE_APPROVED, ESTIMATE_REJECTED, IN_REPAIR, READY_FOR_DELIVERY, DELIVERED, CANCELLED
   assignedTechnicianId String?   @map("assigned_technician_id") @db.Uuid
   intakeCashierId      String    @map("intake_cashier_id") @db.Uuid

@@ -32,7 +32,11 @@ import {
   Keyboard,
   Coins,
   Check,
+  UserPlus,
 } from "lucide-react";
+import { createCustomerAction } from "@/features/customers/customer-actions";
+import { CashMemo, InvoiceData } from "./cash-memo";
+
 
 interface ProductItem {
   id: string;
@@ -75,11 +79,110 @@ export function PosTerminal({
   products,
   customers,
 }: PosTerminalProps) {
+  const [customerList, setCustomerList] = useState<CustomerItem[]>(customers);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [customerPhone, setCustomerPhone] = useState<string>("");
+  const [customerName, setCustomerName] = useState<string>("");
   const [discount, setDiscount] = useState<number>(0);
+  const [mobileTab, setMobileTab] = useState<"CATALOG" | "CART">("CATALOG");
+
+  const handleCustomerSelectChange = (id: string) => {
+    setSelectedCustomerId(id);
+    if (!id) {
+      setCustomerPhone("");
+      setCustomerName("");
+      return;
+    }
+    const found = customerList.find((c) => c.id === id);
+    if (found) {
+      setCustomerPhone(found.phone);
+      setCustomerName(found.name);
+    }
+  };
+
+  const handleCustomerPhoneChange = (phone: string) => {
+    setCustomerPhone(phone);
+    const clean = phone.trim();
+    if (!clean) {
+      setSelectedCustomerId("");
+      return;
+    }
+    const found = customerList.find((c) => c.phone.trim() === clean);
+    if (found) {
+      setSelectedCustomerId(found.id);
+      if (!customerName.trim()) {
+        setCustomerName(found.name);
+      }
+    } else {
+      if (selectedCustomerId) {
+        setSelectedCustomerId("");
+      }
+    }
+  };
+
+  // Quick Customer State
+  const [isQuickCustomerOpen, setIsQuickCustomerOpen] = useState(false);
+  const [quickCustName, setQuickCustName] = useState("");
+  const [quickCustPhone, setQuickCustPhone] = useState("");
+  const [quickCustAddress, setQuickCustAddress] = useState("");
+  const [quickCustLoading, setQuickCustLoading] = useState(false);
+  const [quickCustError, setQuickCustError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCustomerList(customers);
+  }, [customers]);
+
+  const handleQuickAddCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setQuickCustError(null);
+    if (!quickCustName.trim()) {
+      setQuickCustError("গ্রাহকের নাম পূরণ করা আবশ্যক।");
+      return;
+    }
+    if (!quickCustPhone.trim() || quickCustPhone.trim().length < 6) {
+      setQuickCustError("সঠিক মোবাইল নম্বর (কমপক্ষে ৬ ডিজিট) দিন।");
+      return;
+    }
+
+    setQuickCustLoading(true);
+    try {
+      const res = await createCustomerAction({
+        shopId,
+        name: quickCustName.trim(),
+        phone: quickCustPhone.trim(),
+        address: quickCustAddress.trim() || null,
+      });
+
+      if (!res.success || !res.customer) {
+        setQuickCustError(res.error || "গ্রাহক তৈরি ব্যর্থ হয়েছে।");
+        setQuickCustLoading(false);
+        return;
+      }
+
+      const newCust: CustomerItem = {
+        id: res.customer.id,
+        name: res.customer.name,
+        phone: res.customer.phone,
+        totalDue: res.customer.totalDue,
+      };
+
+      setCustomerList((prev) => [newCust, ...prev]);
+      setSelectedCustomerId(newCust.id);
+      setCustomerPhone(newCust.phone);
+      setCustomerName(newCust.name);
+      setIsQuickCustomerOpen(false);
+      setQuickCustName("");
+      setQuickCustPhone("");
+      setQuickCustAddress("");
+    } catch (err: any) {
+      setQuickCustError(err.message || "ত্রুটি ঘটেছে।");
+    } finally {
+      setQuickCustLoading(false);
+    }
+  };
 
   // Payment splits
   const [cashAmount, setCashAmount] = useState<number>(0);
@@ -92,7 +195,7 @@ export function PosTerminal({
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [completedInvoice, setCompletedInvoice] = useState<any | null>(null);
+  const [completedInvoice, setCompletedInvoice] = useState<InvoiceData | null>(null);
 
   // Active IMEI selector modal
   const [imeiSelectModalItem, setImeiSelectModalItem] = useState<CartItem | null>(null);
@@ -225,6 +328,9 @@ export function PosTerminal({
     setBkashAmount(0);
     setNagadAmount(0);
     setCashTendered(0);
+    setSelectedCustomerId("");
+    setCustomerPhone("");
+    setCustomerName("");
   };
 
   const handleCheckout = async () => {
@@ -245,9 +351,20 @@ export function PosTerminal({
     if (bkashAmount > 0) payments.push({ method: "BKASH", amount: bkashAmount });
     if (nagadAmount > 0) payments.push({ method: "NAGAD", amount: nagadAmount });
 
+    let finalPhone = customerPhone.trim() || null;
+    let finalName = customerName.trim() || null;
+    let finalCustId = selectedCustomerId || null;
+
+    if (dueAmount > 0 && !finalCustId && !finalPhone && !finalName) {
+      finalName = "ওয়াক-ইন কাস্টমার";
+      finalPhone = "01000000000";
+    }
+
     const payload = {
       shopId,
-      customerId: selectedCustomerId || null,
+      customerId: finalCustId,
+      customerPhone: finalPhone,
+      customerName: finalName,
       locationId,
       items: cart.map((it) => ({
         productId: it.product.id,
@@ -276,8 +393,38 @@ export function PosTerminal({
         throw new Error(data.error?.message || "Failed to process sale.");
       }
 
-      setCompletedInvoice(data.data);
+      const snapshotItems = cart.map((it) => ({
+        id: it.product.id,
+        productName: it.product.name,
+        brand: it.product.brand,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        subtotal: it.quantity * it.unitPrice,
+        serials: it.selectedSerialIds.map((sid) => {
+          const sn = it.product.serialNumbers?.find((s) => s.id === sid);
+          return sn?.imei1 || sn?.imei2 || sid;
+        }),
+      }));
+
+      setCompletedInvoice({
+        invoiceNumber: data.data?.invoiceNumber || `INV-${Date.now().toString().slice(-6)}`,
+        createdAt: new Date().toISOString(),
+        customerName: finalName || "ওয়াক-ইন কাস্টমার",
+        customerPhone: finalPhone || null,
+        cashierName: "অ্যাডমিন / ক্যাশিয়ার",
+        items: snapshotItems,
+        subtotal: subtotal,
+        discount: discount,
+        totalAmount: data.data?.totalAmount ?? totalAmount,
+        paidAmount: data.data?.paidAmount ?? totalPaid,
+        dueAmount: data.data?.dueAmount ?? dueAmount,
+        payments: payments,
+        cashTendered: cashTendered,
+        changeDue: changeDue,
+      });
+
       clearCart();
+      setMobileTab("CATALOG");
     } catch (err: any) {
       setErrorMessage(err.message || "An error occurred during checkout.");
     } finally {
@@ -313,12 +460,14 @@ export function PosTerminal({
     return <Tag className="w-5 h-5 text-primary" />;
   };
 
-  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
+  const selectedCustomer = customerList.find((c) => c.id === selectedCustomerId);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-28 lg:pb-12 animate-in fade-in duration-300">
-      {/* 1. FUTURISTIC COMMAND HEADER WITH LIVE REGISTER CONTROLS */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/60 dark:border-white/10 glass-panel p-5 sm:p-7 shadow-2xl">
+      {/* WRAP ALL SCREEN UI IN PRINT:HIDDEN SO PRINT PREVIEW ONLY SHOWS THE CASH MEMO */}
+      <div className="pos-workspace print:hidden space-y-6">
+        {/* 1. FUTURISTIC COMMAND HEADER WITH LIVE REGISTER CONTROLS */}
+        <div className="relative overflow-hidden rounded-3xl border border-white/60 dark:border-white/10 glass-panel p-5 sm:p-7 shadow-2xl">
         {/* Ambient Glow Orbs */}
         <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-blue-500/20 via-indigo-500/15 to-purple-500/10 blur-3xl pointer-events-none animate-pulse-subtle" />
         <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-gradient-to-tr from-cyan-400/20 to-emerald-400/15 blur-3xl pointer-events-none" />
@@ -369,11 +518,48 @@ export function PosTerminal({
         </div>
       </div>
 
+      {/* Mobile View Switcher (Catalog vs Cart) */}
+      <div className="lg:hidden grid grid-cols-2 gap-2 p-1.5 bg-muted/60 rounded-2xl border border-border">
+        <button
+          type="button"
+          onClick={() => setMobileTab("CATALOG")}
+          className={`py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
+            mobileTab === "CATALOG"
+              ? "bg-card text-foreground shadow-md border border-border"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>পণ্য ক্যাটালগ</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab("CART")}
+          className={`py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all relative ${
+            mobileTab === "CART"
+              ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <ShoppingCart className="w-4 h-4" />
+          <span>বিক্রয় কার্ট ও বিল</span>
+          {cart.length > 0 && (
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                mobileTab === "CART" ? "bg-white text-primary" : "bg-primary text-white"
+              }`}
+            >
+              {cart.reduce((s, it) => s + it.quantity, 0)}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* 2. MAIN WORKSPACE: TWO-COLUMN LAYOUT (7 COLS CATALOG / 5 COLS TERMINAL) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* LEFT 7 COLS: PRODUCT SEARCH, CATEGORIES & INTERACTIVE CARDS */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className={`lg:col-span-7 space-y-4 ${mobileTab === "CART" ? "hidden lg:block" : "block"}`}>
           
           {/* Search Bar & Fast Barcode Scan Trigger */}
           <div className="glass-panel p-4 rounded-3xl shadow-lg border border-border/80 space-y-3.5">
@@ -548,10 +734,61 @@ export function PosTerminal({
               </p>
             </div>
           )}
+
+          {/* Floating Checkout Bar for Mobile View */}
+          {cart.length > 0 && mobileTab === "CATALOG" && (
+            <div className="lg:hidden fixed bottom-[72px] left-3 right-3 z-30 animate-in slide-in-from-bottom-3 duration-200">
+              <div
+                onClick={() => setMobileTab("CART")}
+                className="bg-gradient-to-r from-blue-600 via-indigo-600 to-primary text-white p-3 sm:p-3.5 rounded-2xl shadow-2xl shadow-blue-500/40 border border-white/25 flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white relative shadow-inner">
+                    <ShoppingCart className="w-5 h-5 text-white" />
+                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-indigo-600 shadow-xs">
+                      {cart.reduce((s, it) => s + it.quantity, 0)}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold text-blue-100">
+                      {cart.reduce((s, it) => s + it.quantity, 0)} টি পণ্য নির্বাচিত
+                    </div>
+                    <div className="text-sm font-black text-white tracking-tight">
+                      {formatBDT(totalAmount)}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileTab("CART");
+                  }}
+                  className="px-4 py-2.5 bg-white text-blue-700 hover:bg-white/95 font-black text-xs rounded-xl shadow-lg flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>চেকআউট করুন</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT 5 COLS: EXECUTIVE CART & FAST CHECKOUT TERMINAL */}
-        <div className="lg:col-span-5 rounded-3xl glass-panel shadow-2xl border border-border/80 p-5 sm:p-6 space-y-5 sticky top-20">
+        <div className={`lg:col-span-5 rounded-3xl glass-panel shadow-2xl border border-border/80 p-5 sm:p-6 space-y-5 sticky top-20 ${mobileTab === "CATALOG" ? "hidden lg:block" : "block"}`}>
+          
+          {/* Mobile Back to Catalog Button */}
+          <div className="lg:hidden pb-1">
+            <button
+              type="button"
+              onClick={() => setMobileTab("CATALOG")}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline bg-primary/10 px-3 py-1.5 rounded-xl active:scale-95 transition-all"
+            >
+              <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+              <span>‹ আরও পণ্য যোগ করতে তালিকায় যান</span>
+            </button>
+          </div>
           
           {/* Cart Header */}
           <div className="flex items-center justify-between border-b border-border/70 pb-4">
@@ -582,32 +819,91 @@ export function PosTerminal({
             </div>
           </div>
 
-          {/* Customer Selection with Live Dues Badge */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
+          {/* Customer Selection with Live Dues Badge & Direct Phone/Name */}
+          <div className="space-y-2.5 p-3 sm:p-3.5 rounded-2xl border bg-muted/40 border-border/80">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-primary" />
-                <span>গ্রাহক নির্বাচন</span>
-              </span>
-              {selectedCustomer && selectedCustomer.totalDue > 0 && (
-                <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
-                  বকেয়া পাওনা: {formatBDT(selectedCustomer.totalDue)}
+                <span>
+                  গ্রাহক নির্বাচন {dueAmount > 0 ? <strong className="text-amber-600 dark:text-amber-400 font-extrabold">(বাকি হিসাব)</strong> : <span className="text-muted-foreground font-normal">(ঐচ্ছিক)</span>}
                 </span>
-              )}
-            </label>
+              </label>
+
+              <div className="flex items-center gap-2">
+                {selectedCustomer && selectedCustomer.totalDue > 0 && (
+                  <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
+                    পূর্বের বকেয়া: {formatBDT(selectedCustomer.totalDue)}
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickCustError(null);
+                    setIsQuickCustomerOpen(true);
+                  }}
+                  className="text-[11px] font-bold text-primary hover:text-primary/80 flex items-center gap-1 bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-md transition-colors"
+                  title="নতুন কাস্টমার নিবন্ধন করুন"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  <span>+ নতুন</span>
+                </button>
+              </div>
+            </div>
 
             <select
               value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className="w-full text-xs font-semibold bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground focus:outline-hidden focus:ring-4 focus:ring-primary/15 focus:border-primary shadow-xs transition-all"
+              onChange={(e) => handleCustomerSelectChange(e.target.value)}
+              className="w-full text-xs font-semibold bg-background border border-border rounded-xl px-3 py-2 text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 shadow-xs transition-all"
             >
-              <option value="">ওয়াক-ইন কাস্টমার (নগদ ক্রেতা)</option>
-              {customers.map((c) => (
+              <option value="">ওয়াক-ইন কাস্টমার (বা নিচে মোবাইল/নাম দিন)</option>
+              {customerList.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} — {c.phone} {c.totalDue > 0 ? `(বকেয়া: ৳${c.totalDue})` : ""}
+                  {c.name} — {c.phone} {c.totalDue > 0 ? `(পূর্বের বকেয়া: ৳${c.totalDue})` : ""}
                 </option>
               ))}
             </select>
+
+            {/* Direct Customer Mobile & Name Input for Due / Walk-in sale */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-border/60">
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground mb-1">
+                  গ্রাহকের মোবাইল নম্বর (ঐচ্ছিক)
+                </label>
+                <div className="relative">
+                  <Smartphone className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    placeholder="01712345678 (ঐচ্ছিক)"
+                    value={customerPhone}
+                    onChange={(e) => handleCustomerPhoneChange(e.target.value)}
+                    className="w-full pl-8 pr-2.5 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground mb-1">
+                  গ্রাহকের নাম (ঐচ্ছিক)
+                </label>
+                <div className="relative">
+                  <User className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="যেমন: মোঃ সাকিব হোসেন / আলমগীর ভাই"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {dueAmount > 0 && (
+              <p className="text-[10px] text-muted-foreground font-medium pt-0.5">
+                💡 মোবাইল নম্বর দেওয়া ঐচ্ছিক; নাম দিলে সেই নামে অথবা ওয়াক-ইন হিসেবে বাকি খতিয়ানে জমা থাকবে।
+              </p>
+            )}
           </div>
 
           {/* Cart Items List */}
@@ -795,7 +1091,7 @@ export function PosTerminal({
                   setNagadAmount(0);
                   setCashTendered(totalAmount);
                 }}
-                className="text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 font-bold text-emerald-700 dark:text-emerald-300 transition-colors"
+                className="text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 font-bold text-emerald-700 dark:text-emerald-300 transition-colors active:scale-95"
               >
                 ফুল ক্যাশ
               </button>
@@ -808,7 +1104,7 @@ export function PosTerminal({
                   setNagadAmount(0);
                   setCashTendered(0);
                 }}
-                className="text-[11px] px-2.5 py-1 rounded-lg border border-[#E2136E]/30 bg-[#E2136E]/10 hover:bg-[#E2136E]/20 font-bold text-[#E2136E] transition-colors"
+                className="text-[11px] px-2.5 py-1 rounded-lg border border-[#E2136E]/30 bg-[#E2136E]/10 hover:bg-[#E2136E]/20 font-bold text-[#E2136E] transition-colors active:scale-95"
               >
                 ফুল বিকাশ
               </button>
@@ -821,9 +1117,36 @@ export function PosTerminal({
                   setBkashAmount(0);
                   setCashTendered(0);
                 }}
-                className="text-[11px] px-2.5 py-1 rounded-lg border border-[#F7941D]/30 bg-[#F7941D]/10 hover:bg-[#F7941D]/20 font-bold text-[#F7941D] transition-colors"
+                className="text-[11px] px-2.5 py-1 rounded-lg border border-[#F7941D]/30 bg-[#F7941D]/10 hover:bg-[#F7941D]/20 font-bold text-[#F7941D] transition-colors active:scale-95"
               >
                 ফুল নগদ
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomPayment(true);
+                  setCashAmount(0);
+                  setBkashAmount(0);
+                  setNagadAmount(0);
+                  setCashTendered(0);
+                }}
+                className="text-[11px] px-2.5 py-1 rounded-lg border border-rose-500/40 bg-rose-500/15 hover:bg-rose-500/25 font-bold text-rose-700 dark:text-rose-300 transition-colors active:scale-95"
+              >
+                সম্পূর্ণ বাকি (৳০ নগদ)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomPayment(true);
+                  const half = Math.round(totalAmount / 2);
+                  setCashAmount(half);
+                  setBkashAmount(0);
+                  setNagadAmount(0);
+                  setCashTendered(half);
+                }}
+                className="text-[11px] px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 font-bold text-amber-700 dark:text-amber-300 transition-colors active:scale-95"
+              >
+                ৫০% জমা (বাকি ৫০%)
               </button>
             </div>
 
@@ -857,12 +1180,17 @@ export function PosTerminal({
 
           {/* Dues Warning Card */}
           {dueAmount > 0 && (
-            <div className="p-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs flex items-center justify-between animate-in fade-in">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span className="font-bold">বাকি হিসেবে জমা থাকবে (Customer Due):</span>
+            <div className="p-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-1 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span className="font-extrabold text-xs">বাকি বিক্রয় (Customer Due):</span>
+                </div>
+                <span className="font-black text-sm text-amber-600 dark:text-amber-400">{formatBDT(dueAmount)}</span>
               </div>
-              <span className="font-black text-sm">{formatBDT(dueAmount)}</span>
+              <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
+                ✓ বিক্রয় সম্পন্ন হলে এই {formatBDT(dueAmount)} টাকা স্বয়ংক্রিয়ভাবে কাস্টমার বাকি খতিয়ানে সংরক্ষিত হবে।
+              </p>
             </div>
           )}
 
@@ -885,10 +1213,12 @@ export function PosTerminal({
           </button>
         </div>
       </div>
+      {/* END pos-workspace print:hidden */}
+      </div>
 
       {/* 3. IMEI SELECTION MODAL FOR SMARTPHONES */}
       {imeiSelectModalItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="print:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card text-card-foreground border border-border rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
@@ -964,64 +1294,94 @@ export function PosTerminal({
         </div>
       )}
 
-      {/* 4. INVOICE SUCCESS THERMAL RECEIPT MODAL */}
+      {/* 4. INVOICE SUCCESS CASH MEMO MODAL (Thermal 80mm & Classic A4/A5) */}
       {completedInvoice && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#faf8f5] dark:bg-[#f5f2eb] text-zinc-900 w-full max-w-sm rounded-3xl border border-zinc-300 p-6 space-y-5 shadow-2xl font-mono text-xs select-none">
-            <div className="text-center space-y-1.5 pb-3 border-b border-dashed border-zinc-400">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <h3 className="font-black text-lg text-zinc-950 uppercase tracking-tight">
-                বিক্রয় সম্পন্ন হয়েছে!
-              </h3>
-              <p className="text-xs text-zinc-600 font-bold">
-                মেমো নং: {completedInvoice.invoiceNumber}
-              </p>
-              <p className="text-[10px] text-zinc-500">রাশেদ টেলিকম • মোবাইল ও সার্ভিসিং</p>
-            </div>
+        <CashMemo
+          invoice={completedInvoice}
+          onClose={() => setCompletedInvoice(null)}
+          onNewSale={() => setCompletedInvoice(null)}
+        />
+      )}
 
-            <div className="p-4 bg-white/90 rounded-2xl space-y-2 border border-zinc-300/80 shadow-xs">
-              <div className="flex justify-between">
-                <span className="text-zinc-600">সর্বমোট মূল্য:</span>
-                <span className="font-black text-sm text-zinc-950">
-                  {formatBDT(completedInvoice.totalAmount)}
-                </span>
+      {/* QUICK ADD CUSTOMER MODAL */}
+      {isQuickCustomerOpen && (
+        <div className="print:hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-5 py-3.5 border-b border-border/80 flex items-center justify-between bg-muted/40">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-foreground text-sm">নতুন গ্রাহক দ্রুত নিবন্ধন</h3>
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-600">পরিশোধিত অর্থ:</span>
-                <span className="font-extrabold text-emerald-700">
-                  {formatBDT(completedInvoice.paidAmount)}
-                </span>
-              </div>
-              {completedInvoice.dueAmount > 0 && (
-                <div className="flex justify-between font-bold text-rose-600 pt-1 border-t border-dashed border-zinc-300">
-                  <span>বকেয়া পরিমাণ:</span>
-                  <span>{formatBDT(completedInvoice.dueAmount)}</span>
+              <button
+                type="button"
+                onClick={() => setIsQuickCustomerOpen(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleQuickAddCustomer} className="p-5 space-y-3.5">
+              {quickCustError && (
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                  {quickCustError}
                 </div>
               )}
-            </div>
-
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="flex-1 py-3 rounded-xl border border-zinc-400 bg-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-100 shadow-xs active:scale-95 transition-all text-zinc-800"
-              >
-                <Printer className="w-4 h-4 text-zinc-700" />
-                <span>প্রিন্ট রসিদ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCompletedInvoice(null)}
-                className="flex-1 py-3 rounded-xl bg-primary text-white font-black text-xs hover:bg-primary/90 shadow-md shadow-primary/20 active:scale-95 transition-all"
-              >
-                নতুন বিক্রয়
-              </button>
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1">গ্রাহকের নাম *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="নাম লিখুন..."
+                  value={quickCustName}
+                  onChange={(e) => setQuickCustName(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-background rounded-xl border border-border text-foreground"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1">মোবাইল নম্বর *</label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="যেমন: 01712345678"
+                  value={quickCustPhone}
+                  onChange={(e) => setQuickCustPhone(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-background rounded-xl border border-border text-foreground font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1">ঠিকানা (ঐচ্ছিক)</label>
+                <input
+                  type="text"
+                  placeholder="ঠিকানা বা এলাকা..."
+                  value={quickCustAddress}
+                  onChange={(e) => setQuickCustAddress(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-background rounded-xl border border-border text-foreground"
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickCustomerOpen(false)}
+                  className="px-3.5 py-2 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={quickCustLoading}
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold shadow-md disabled:opacity-50"
+                >
+                  {quickCustLoading ? "সংরক্ষণ হচ্ছে..." : "গ্রাহক যোগ ও নির্বাচন করুন"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
     </div>
   );
 }
+

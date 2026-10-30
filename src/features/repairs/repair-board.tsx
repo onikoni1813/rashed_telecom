@@ -22,7 +22,25 @@ import {
   PackageCheck,
   DollarSign,
   AlertCircle,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  Zap,
+  Mic,
+  Droplets,
+  BatteryCharging,
+  Maximize2,
+  Volume2,
+  Cpu,
+  Sparkles,
+  UserPlus,
+  Phone,
 } from "lucide-react";
+import { createCustomerAction } from "@/features/customers/customer-actions";
+
+
 
 export interface SerializedJob {
   id: string;
@@ -34,6 +52,8 @@ export interface SerializedJob {
   intakeCondition: string;
   accessoriesReceived: string | null;
   reportedIssue: string;
+  screenLockType?: string | null;
+  devicePasscode?: string | null;
   status: string;
   estimatedCost: number;
   labourCost: number;
@@ -104,6 +124,118 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; b
   CANCELLED: { label: "বাতিল", bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
 };
 
+const PATTERN_DOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const DOT_COORDS: Record<number, { x: number; y: number }> = {
+  1: { x: 30, y: 30 },
+  2: { x: 90, y: 30 },
+  3: { x: 150, y: 30 },
+  4: { x: 30, y: 90 },
+  5: { x: 90, y: 90 },
+  6: { x: 150, y: 90 },
+  7: { x: 30, y: 150 },
+  8: { x: 90, y: 150 },
+  9: { x: 150, y: 150 },
+};
+
+export interface QuickServicePreset {
+  id: string;
+  name: string;
+  category: "CHARGING" | "AUDIO" | "MAINTENANCE" | "ACCESSORY" | "BATTERY" | "DISPLAY" | "SOFTWARE";
+  estimatedPrice: number;
+  defaultIssue: string;
+  description: string;
+}
+
+export const QUICK_SERVICE_PRESETS: QuickServicePreset[] = [
+  {
+    id: "charging-port",
+    name: "চার্জিং পোর্ট চেঞ্জ",
+    category: "CHARGING",
+    estimatedPrice: 300,
+    defaultIssue: "চার্জিং পোর্ট লুজ / চার্জ হয় না, পিন রিপ্লেসমেন্ট প্রয়োজন",
+    description: "টাইপ-সি / মাইক্রো চার্জিং পোর্ট চেঞ্জ",
+  },
+  {
+    id: "mic-change",
+    name: "মাইক (Mic) চেঞ্জ",
+    category: "AUDIO",
+    estimatedPrice: 250,
+    defaultIssue: "কলের সময় কথা ওপাশে যায় না / মাইক সমস্যা",
+    description: "মাইক্রোফোন রিপ্লেসমেন্ট",
+  },
+  {
+    id: "phone-wash",
+    name: "ফোন ওয়াশ ও সার্ভিসিং",
+    category: "MAINTENANCE",
+    estimatedPrice: 350,
+    defaultIssue: "পানিতে পড়ে গেছে / ডাস্ট ও শর্ট সার্কিট আল্ট্রাসনিক ওয়াশ",
+    description: "মাদারবোর্ড আল্ট্রাসনিক ওয়াশ ও ড্রাইং",
+  },
+  {
+    id: "tempered-glass",
+    name: "টেম্পার গ্লাস লাগানো",
+    category: "ACCESSORY",
+    estimatedPrice: 150,
+    defaultIssue: "ডিসপ্লে প্রটেকশন টেম্পার গ্লাস / UV গ্লাস ইনস্টলেশন",
+    description: "9D / 11D / UV প্রিমিয়াম গ্লাস ফিটিং",
+  },
+  {
+    id: "battery-replace",
+    name: "ব্যাটারি চেঞ্জ",
+    category: "BATTERY",
+    estimatedPrice: 900,
+    defaultIssue: "চার্জ থাকে না / ব্যাকআপ খুব কম / ব্যাটারি ফোলা",
+    description: "অরিজিনাল গ্রেড ব্যাটারি প্রতিস্থাপন",
+  },
+  {
+    id: "display-change",
+    name: "ডিসপ্লে / টাচ চেঞ্জ",
+    category: "DISPLAY",
+    estimatedPrice: 1800,
+    defaultIssue: "ডিসপ্লে ফাটা / আলো নেই / টাচ কাজ করে না",
+    description: "সম্পূর্ণ ডিসপ্লে ফোল্ডার ও টাচ রিপ্লেসমেন্ট",
+  },
+  {
+    id: "speaker-earpiece",
+    name: "স্পিকার / রিংগার চেঞ্জ",
+    category: "AUDIO",
+    estimatedPrice: 250,
+    defaultIssue: "কথা শোনা যায় না / রিং বাজে না / সাউন্ড ফাটা",
+    description: "ইয়ারপিস বা লাউডস্পিকার রিপ্লেসমেন্ট",
+  },
+  {
+    id: "software-flash",
+    name: "সফটওয়্যার / আনলক",
+    category: "SOFTWARE",
+    estimatedPrice: 400,
+    defaultIssue: "লোগো হ্যাং / প্যাটার্ন আনলক / FRP বাইপাস",
+    description: "রম ফ্ল্যাশিং ও সফটওয়্যার রিকভারি",
+  },
+];
+
+export function renderQuickServiceIcon(id: string, className = "w-4 h-4") {
+  switch (id) {
+    case "charging-port":
+      return <Zap className={`${className} text-amber-500`} />;
+    case "mic-change":
+      return <Mic className={`${className} text-rose-500`} />;
+    case "phone-wash":
+      return <Droplets className={`${className} text-cyan-500`} />;
+    case "tempered-glass":
+      return <Smartphone className={`${className} text-emerald-500`} />;
+    case "battery-replace":
+      return <BatteryCharging className={`${className} text-emerald-600`} />;
+    case "display-change":
+      return <Maximize2 className={`${className} text-blue-500`} />;
+    case "speaker-earpiece":
+      return <Volume2 className={`${className} text-purple-500`} />;
+    case "software-flash":
+      return <Cpu className={`${className} text-indigo-500`} />;
+    default:
+      return <Wrench className={`${className} text-amber-500`} />;
+  }
+}
+
 export function RepairBoard({
   shopId,
   locationId,
@@ -124,9 +256,103 @@ export function RepairBoard({
   const [showDeliverModal, setShowDeliverModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
-  // Intake Form
-  const [intakeCustomerId, setIntakeCustomerId] = useState(customers[0]?.id || "");
-  const [intakeBrand, setIntakeBrand] = useState("Samsung");
+  const [customerList, setCustomerList] = useState(customers);
+  const [isQuickCustomerOpen, setIsQuickCustomerOpen] = useState(false);
+  const [quickCustName, setQuickCustName] = useState("");
+  const [quickCustPhone, setQuickCustPhone] = useState("");
+  const [quickCustAddress, setQuickCustAddress] = useState("");
+  const [quickCustLoading, setQuickCustLoading] = useState(false);
+  const [quickCustError, setQuickCustError] = useState<string | null>(null);
+
+  const handleQuickAddCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setQuickCustError(null);
+    if (!quickCustName.trim()) {
+      setQuickCustError("গ্রাহকের নাম আবশ্যক।");
+      return;
+    }
+    if (!quickCustPhone.trim() || quickCustPhone.trim().length < 6) {
+      setQuickCustError("সঠিক মোবাইল নম্বর দিন।");
+      return;
+    }
+
+    setQuickCustLoading(true);
+    try {
+      const res = await createCustomerAction({
+        shopId,
+        name: quickCustName.trim(),
+        phone: quickCustPhone.trim(),
+        address: quickCustAddress.trim() || null,
+      });
+
+      if (!res.success || !res.customer) {
+        setQuickCustError(res.error || "গ্রাহক তৈরি ব্যর্থ হয়েছে।");
+        setQuickCustLoading(false);
+        return;
+      }
+
+      const newCust = {
+        id: res.customer.id,
+        name: res.customer.name,
+        phone: res.customer.phone,
+      };
+
+      setCustomerList((prev) => [newCust, ...prev]);
+      setIntakeCustomerId(newCust.id);
+      setIntakeCustomerPhone(newCust.phone);
+      setIntakeCustomerName(newCust.name);
+      setIsQuickCustomerOpen(false);
+      setQuickCustName("");
+      setQuickCustPhone("");
+      setQuickCustAddress("");
+    } catch (err: any) {
+      setQuickCustError(err.message || "ত্রুটি ঘটেছে।");
+    } finally {
+      setQuickCustLoading(false);
+    }
+  };
+
+  // Intake Form - Default to Walk-in with blank inputs
+  const [intakeCustomerId, setIntakeCustomerId] = useState("");
+  const [intakeCustomerPhone, setIntakeCustomerPhone] = useState("");
+  const [intakeCustomerName, setIntakeCustomerName] = useState("");
+
+  const handleCustomerSelectChange = (id: string) => {
+    setIntakeCustomerId(id);
+    if (!id) {
+      // Walk-in / unselected: clear inputs
+      setIntakeCustomerPhone("");
+      setIntakeCustomerName("");
+      return;
+    }
+    const found = customerList.find((c) => c.id === id);
+    if (found) {
+      setIntakeCustomerPhone(found.phone || "");
+      setIntakeCustomerName(found.name || "");
+    }
+  };
+
+  const handleCustomerPhoneChange = (phone: string) => {
+    setIntakeCustomerPhone(phone);
+    const cleanPhone = phone.trim();
+    if (!cleanPhone) {
+      setIntakeCustomerId("");
+      return;
+    }
+    const found = customerList.find((c) => c.phone.trim() === cleanPhone);
+    if (found) {
+      setIntakeCustomerId(found.id);
+      if (!intakeCustomerName.trim()) {
+        setIntakeCustomerName(found.name);
+      }
+    } else {
+      if (intakeCustomerId) {
+        setIntakeCustomerId("");
+      }
+    }
+  };
+
+  const [intakeBrand, setIntakeBrand] = useState("");
   const [intakeModel, setIntakeModel] = useState("");
   const [intakeImei, setIntakeImei] = useState("");
   const [intakeColor, setIntakeColor] = useState("");
@@ -135,6 +361,56 @@ export function RepairBoard({
   const [intakeIssue, setIntakeIssue] = useState("");
   const [intakeTechId, setIntakeTechId] = useState(technicians[0]?.id || "");
   const [intakePromisedDate, setIntakePromisedDate] = useState("");
+
+  // Billing & Screen Lock in Intake
+  const [intakeEstimatedCost, setIntakeEstimatedCost] = useState<number | string>("");
+  const [intakePaidAmount, setIntakePaidAmount] = useState<number | string>("");
+  const [intakePaymentMethod, setIntakePaymentMethod] = useState<"CASH" | "BANK" | "BKASH" | "NAGAD">("CASH");
+  const [intakeLockType, setIntakeLockType] = useState<"NONE" | "PIN" | "PATTERN">("NONE");
+  const [intakeLockPin, setIntakeLockPin] = useState("");
+  const [intakeLockPattern, setIntakeLockPattern] = useState<number[]>([]);
+  const [intakeLockNotes, setIntakeLockNotes] = useState("");
+  const [showPin, setShowPin] = useState(false);
+
+  // Quick Service Preset selection
+  const [selectedQuickService, setSelectedQuickService] = useState<string | null>(null);
+
+  const resetIntakeForm = () => {
+    setIntakeCustomerId("");
+    setIntakeCustomerPhone("");
+    setIntakeCustomerName("");
+    setIntakeBrand("");
+    setIntakeModel("");
+    setIntakeImei("");
+    setIntakeColor("");
+    setIntakeCondition("");
+    setIntakeAccessories("");
+    setIntakeIssue("");
+    setIntakeEstimatedCost("");
+    setIntakePaidAmount("");
+    setIntakeLockType("NONE");
+    setIntakeLockPin("");
+    setIntakeLockPattern([]);
+    setIntakeLockNotes("");
+    setSelectedQuickService(null);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+  };
+
+  const handleQuickServiceSelect = (preset: QuickServicePreset) => {
+    setSelectedQuickService(preset.id);
+    setIntakeIssue(preset.defaultIssue);
+    setIntakeEstimatedCost(preset.estimatedPrice);
+    if (!intakeCondition.trim()) {
+      setIntakeCondition(preset.description);
+    }
+  };
+
+  const handleDashboardQuickService = (preset: QuickServicePreset) => {
+    resetIntakeForm();
+    handleQuickServiceSelect(preset);
+    setShowIntakeModal(true);
+  };
 
   // Diag Form
   const [diagFindings, setDiagFindings] = useState("");
@@ -176,23 +452,41 @@ export function RepairBoard({
     setLoading(true);
     setErrorMsg(null);
 
+    let passcode: string | null = null;
+    if (intakeLockType === "PIN") {
+      passcode = intakeLockPin.trim() || null;
+    } else if (intakeLockType === "PATTERN") {
+      passcode =
+        intakeLockPattern.length > 0
+          ? intakeLockPattern.join("-") + (intakeLockNotes.trim() ? ` (${intakeLockNotes.trim()})` : "")
+          : intakeLockNotes.trim() || null;
+    }
+
     try {
       const res = await fetch("/api/v1/service-jobs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Idempotency-Key": `job-intake-${Date.now()}`,
+          "x-test-user-id": currentUserId,
         },
         body: JSON.stringify({
           shopId,
-          customerId: intakeCustomerId,
-          deviceBrand: intakeBrand,
-          deviceModel: intakeModel,
+          customerId: intakeCustomerId || null,
+          customerPhone: intakeCustomerPhone.trim() || null,
+          customerName: intakeCustomerName.trim() || null,
+          deviceBrand: intakeBrand.trim() || "অন্যান্য",
+          deviceModel: intakeModel.trim() || "সাধারণ মডেল",
           deviceImei: intakeImei || null,
           deviceColor: intakeColor || null,
-          intakeCondition,
+          intakeCondition: intakeCondition.trim() || "স্বাভাবিক / ব্যবহৃত",
           accessoriesReceived: intakeAccessories || null,
-          reportedIssue: intakeIssue,
+          reportedIssue: intakeIssue.trim() || null,
+          screenLockType: intakeLockType,
+          devicePasscode: passcode,
+          estimatedCost: intakeEstimatedCost ? Number(intakeEstimatedCost) : 0,
+          paidAmount: intakePaidAmount ? Number(intakePaidAmount) : 0,
+          paymentMethod: intakePaymentMethod,
           promisedDate: intakePromisedDate ? new Date(intakePromisedDate).toISOString() : null,
           assignedTechnicianId: intakeTechId || null,
         }),
@@ -220,7 +514,10 @@ export function RepairBoard({
     try {
       const res = await fetch(`/api/v1/service-jobs/${activeJob.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-test-user-id": currentUserId,
+        },
         body: JSON.stringify({
           shopId,
           diagnostic: {
@@ -257,6 +554,7 @@ export function RepairBoard({
         headers: {
           "Content-Type": "application/json",
           "Idempotency-Key": `part-consume-${Date.now()}`,
+          "x-test-user-id": currentUserId,
         },
         body: JSON.stringify({
           shopId,
@@ -292,6 +590,7 @@ export function RepairBoard({
         headers: {
           "Content-Type": "application/json",
           "Idempotency-Key": `job-deliver-${Date.now()}`,
+          "x-test-user-id": currentUserId,
         },
         body: JSON.stringify({
           shopId,
@@ -341,8 +640,7 @@ export function RepairBoard({
           <button
             type="button"
             onClick={() => {
-              setErrorMsg(null);
-              setSuccessMsg(null);
+              resetIntakeForm();
               setShowIntakeModal(true);
             }}
             className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold text-sm shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all active:scale-95 whitespace-nowrap self-start sm:self-auto"
@@ -350,6 +648,57 @@ export function RepairBoard({
             <Plus className="w-4 h-4" />
             <span>নতুন ডিভাইস গ্রহণ (Intake - F2)</span>
           </button>
+        </div>
+      </div>
+
+      {/* Quick Service Fast-Track Ribbon */}
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl shadow-sm border border-border/80 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+              <Zap className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-foreground flex items-center gap-2">
+                <span>কুইক সার্ভিস ফাস্ট-ট্র্যাক (Quick Services)</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/20">
+                  ১-ক্লিকে গ্রহণ
+                </span>
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                সাধারণ সার্ভিসসমূহে এক ক্লিকেই সমস্যা বিবরণ ও আনুমানিক বিল সহ ইনটেক ফরম খুলুন
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold sm:hidden flex items-center gap-1">
+              ডানে সোয়াইপ করুন ➔
+            </span>
+            <span className="text-xs text-muted-foreground hidden sm:block font-medium">
+              ৮টি জনপ্রিয় সার্ভিস সক্রিয়
+            </span>
+          </div>
+        </div>
+
+        <div className="flex sm:grid sm:grid-cols-4 lg:grid-cols-8 gap-2.5 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0 scrollbar-none snap-x snap-mandatory -mx-1 px-1 touch-pan-x">
+          {QUICK_SERVICE_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => handleDashboardQuickService(preset)}
+              className="group relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-xl border border-border/80 bg-card hover:bg-amber-500/5 hover:border-amber-500/40 hover:shadow-md transition-all duration-200 text-center active:scale-95 shrink-0 w-[125px] sm:w-auto snap-start"
+            >
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-muted/60 group-hover:bg-amber-500/15 flex items-center justify-center mb-1.5 sm:mb-2 transition-colors">
+                {renderQuickServiceIcon(preset.id, "w-4 h-4 sm:w-5 sm:h-5")}
+              </div>
+              <div className="font-bold text-[11px] sm:text-xs text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 line-clamp-2 min-h-[28px] sm:min-h-[32px] flex items-center justify-center leading-tight">
+                {preset.name}
+              </div>
+              <div className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400 mt-1">
+                {formatBDT(preset.estimatedPrice)}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -440,6 +789,25 @@ export function RepairBoard({
                         {job.deviceImei && (
                           <div className="text-xs text-slate-500 font-mono">IMEI: {job.deviceImei}</div>
                         )}
+                        {/* Screen lock badge */}
+                        <div className="mt-1">
+                          {job.screenLockType === "PIN" ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                              <Lock className="w-3 h-3" />
+                              <span>পিন: {job.devicePasscode || "****"}</span>
+                            </span>
+                          ) : job.screenLockType === "PATTERN" ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20">
+                              <Lock className="w-3 h-3" />
+                              <span>প্যাটার্ন: {job.devicePasscode || "দেওয়া আছে"}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-500/10 text-slate-600 dark:text-slate-400">
+                              <Unlock className="w-3 h-3" />
+                              <span>লক নেই</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 max-w-xs truncate text-xs text-muted-foreground">
                         {job.reportedIssue}
@@ -460,8 +828,20 @@ export function RepairBoard({
                           {badge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-foreground">
-                        {formatBDT(job.totalAmount)}
+                      <td className="px-4 py-3 text-right">
+                        <div className="font-bold text-foreground">
+                          {formatBDT(job.totalAmount > 0 ? job.totalAmount : job.estimatedCost)}
+                        </div>
+                        {job.paidAmount > 0 && (
+                          <div className="text-[11px] text-emerald-600 font-medium">
+                            জমা: {formatBDT(job.paidAmount)}
+                          </div>
+                        )}
+                        {job.dueAmount > 0 && (
+                          <div className="text-[11px] text-rose-500 font-semibold">
+                            বকেয়া: {formatBDT(job.dueAmount)}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5">
@@ -515,7 +895,8 @@ export function RepairBoard({
                               type="button"
                               onClick={() => {
                                 setActiveJob(job);
-                                setDeliverPaidAmount(job.totalAmount);
+                                const remainingToPay = Math.max(0, job.totalAmount - job.paidAmount);
+                                setDeliverPaidAmount(remainingToPay);
                                 setShowDeliverModal(true);
                               }}
                               className="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-2xs"
@@ -536,8 +917,8 @@ export function RepairBoard({
 
       {/* MODAL 1: Intake Device Modal */}
       {showIntakeModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card w-full max-w-lg rounded-2xl shadow-2xl border p-6 max-h-[90vh] overflow-y-auto space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border p-4 sm:p-6 max-h-[92vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
                 <Wrench className="w-5 h-5 text-primary" />
@@ -562,14 +943,27 @@ export function RepairBoard({
 
             <form onSubmit={handleIntakeSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-medium text-foreground mb-1">গ্রাহক নির্বাচন করুন *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-medium text-foreground">গ্রাহক নির্বাচন (ঐচ্ছিক)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickCustError(null);
+                      setIsQuickCustomerOpen(true);
+                    }}
+                    className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>+ নতুন গ্রাহক নিবন্ধন</span>
+                  </button>
+                </div>
                 <select
                   value={intakeCustomerId}
-                  onChange={(e) => setIntakeCustomerId(e.target.value)}
+                  onChange={(e) => handleCustomerSelectChange(e.target.value)}
                   className="w-full p-2.5 rounded-lg border bg-background text-foreground"
-                  required
                 >
-                  {customers.map((c) => (
+                  <option value="">ওয়াক-ইন কাস্টমার (Walk-in / অনিবন্ধিত)</option>
+                  {customerList.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name} ({c.phone})
                     </option>
@@ -577,27 +971,63 @@ export function RepairBoard({
                 </select>
               </div>
 
+              {/* Customer Mobile Number & Customer Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-foreground mb-1">
+                    গ্রাহকের মোবাইল নম্বর
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      value={intakeCustomerPhone}
+                      onChange={(e) => handleCustomerPhoneChange(e.target.value)}
+                      placeholder="যেমন: 01712345678"
+                      className="w-full pl-9 pr-3 p-2.5 rounded-lg border bg-background text-foreground font-mono"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    গ্রাহক নির্বাচন করলে নম্বরটি অটোফিল হবে, অথবা সরাসরি লিখুন।
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-foreground mb-1">
+                    গ্রাহকের নাম (ঐচ্ছিক)
+                  </label>
+                  <div className="relative">
+                    <User className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={intakeCustomerName}
+                      onChange={(e) => setIntakeCustomerName(e.target.value)}
+                      placeholder="যেমন: মোঃ সাকিব হোসেন"
+                      className="w-full pl-9 pr-3 p-2.5 rounded-lg border bg-background text-foreground"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-foreground mb-1">ব্র্যান্ড (Brand) *</label>
+                  <label className="block font-medium text-foreground mb-1">ব্র্যান্ড (Brand) (ঐচ্ছিক)</label>
                   <input
                     type="text"
                     value={intakeBrand}
                     onChange={(e) => setIntakeBrand(e.target.value)}
-                    placeholder="Samsung / Xiaomi / Apple"
+                    placeholder="Samsung / Xiaomi / Apple (ঐচ্ছিক)"
                     className="w-full p-2.5 rounded-lg border bg-background text-foreground"
-                    required
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-foreground mb-1">মডেল (Model) *</label>
+                  <label className="block font-medium text-foreground mb-1">মডেল (Model) (ঐচ্ছিক)</label>
                   <input
                     type="text"
                     value={intakeModel}
                     onChange={(e) => setIntakeModel(e.target.value)}
-                    placeholder="Galaxy A15 / Redmi 12"
+                    placeholder="Galaxy A15 / Redmi 12 (ঐচ্ছিক)"
                     className="w-full p-2.5 rounded-lg border bg-background text-foreground"
-                    required
                   />
                 </div>
               </div>
@@ -626,16 +1056,16 @@ export function RepairBoard({
               </div>
 
               <div>
-                <label className="block font-medium text-foreground mb-1">ডিভাইসের বর্তমান অবস্থা (Condition) *</label>
+                <label className="block font-medium text-foreground mb-1">ডিভাইসের বর্তমান অবস্থা (Condition) (ঐচ্ছিক)</label>
                 <input
                   type="text"
                   value={intakeCondition}
                   onChange={(e) => setIntakeCondition(e.target.value)}
-                  placeholder="যেমন: ফ্রন্ট গ্লাস ফাটা, বডি হালকা দাগযুক্ত"
+                  placeholder="যেমন: ফ্রন্ট গ্লাস ফাটা, বডি হালকা দাগযুক্ত (ঐচ্ছিক)"
                   className="w-full p-2.5 rounded-lg border bg-background text-foreground"
-                  required
                 />
               </div>
+
 
               <div>
                 <label className="block font-medium text-foreground mb-1">সাথে থাকা এক্সেসরিজ</label>
@@ -648,16 +1078,370 @@ export function RepairBoard({
                 />
               </div>
 
+              {/* Quick Services Selection Chips */}
+              <div className="p-2.5 sm:p-3.5 rounded-xl border border-amber-500/25 bg-amber-500/5 space-y-2 sm:space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>কুইক সার্ভিস নির্বাচন (Quick Services)</span>
+                  </label>
+                  <span className="text-[10px] sm:text-[11px] text-muted-foreground">ক্লিক করলে সমস্যা ও বিল অটোফিল হবে</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
+                  {QUICK_SERVICE_PRESETS.map((qs) => {
+                    const isSelected = selectedQuickService === qs.id;
+                    return (
+                      <button
+                        key={qs.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedQuickService(null);
+                          } else {
+                            handleQuickServiceSelect(qs);
+                          }
+                        }}
+                        className={`p-2 sm:p-2.5 rounded-xl border transition-all text-left active:scale-95 flex items-start sm:items-center gap-1.5 sm:gap-2 min-h-[58px] sm:min-h-[62px] ${
+                          isSelected
+                            ? "bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/30"
+                            : "bg-background hover:bg-muted text-foreground border-border hover:border-amber-500/40"
+                        }`}
+                      >
+                        <div
+                          className={`p-1.5 rounded-lg shrink-0 mt-0.5 sm:mt-0 ${
+                            isSelected ? "bg-white/20 text-white" : "bg-muted text-amber-500"
+                          }`}
+                        >
+                          {renderQuickServiceIcon(qs.id, "w-3.5 h-3.5 sm:w-4 sm:h-4")}
+                        </div>
+                        <div className="min-w-0 flex-1 flex flex-col justify-between">
+                          <div
+                            className={`font-bold text-[11px] sm:text-xs leading-tight line-clamp-2 ${
+                              isSelected ? "text-white" : "text-foreground"
+                            }`}
+                          >
+                            {qs.name}
+                          </div>
+                          <div
+                            className={`text-[10px] sm:text-[11px] font-extrabold mt-0.5 ${
+                              isSelected ? "text-amber-100" : "text-amber-600 dark:text-amber-400"
+                            }`}
+                          >
+                            {formatBDT(qs.estimatedPrice)}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Reported Issue - OPTIONAL */}
               <div>
-                <label className="block font-medium text-foreground mb-1">গ্রাহকের বর্ণিত সমস্যা (Reported Issue) *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-medium text-foreground">গ্রাহকের বর্ণিত সমস্যা (Reported Issue)</label>
+                  <span className="text-[11px] text-muted-foreground font-normal">(ঐচ্ছিক)</span>
+                </div>
                 <textarea
                   value={intakeIssue}
                   onChange={(e) => setIntakeIssue(e.target.value)}
-                  placeholder="যেমন: হাত থেকে পড়ে ডিসপ্লে আলো আসছে না, টাচ কাজ করে না"
+                  placeholder="যেমন: হাত থেকে পড়ে ডিসপ্লে আলো আসছে না, টাচ কাজ করে না (ঐচ্ছিক)"
                   rows={2}
                   className="w-full p-2.5 rounded-lg border bg-background text-foreground"
-                  required
                 />
+              </div>
+
+              {/* SECTION: SCREEN LOCK */}
+              <div className="border border-amber-500/30 rounded-xl p-3.5 bg-amber-500/5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 font-bold text-foreground text-xs">
+                    <Lock className="w-4 h-4 text-amber-500" />
+                    <span>স্ক্রিন লক ইনফরমেশন (Screen Lock)</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-background rounded-lg p-0.5 border text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setIntakeLockType("NONE")}
+                      className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                        intakeLockType === "NONE"
+                          ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      লক নেই
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIntakeLockType("PIN")}
+                      className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                        intakeLockType === "PIN"
+                          ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      পিন / পাসওয়ার্ড
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIntakeLockType("PATTERN")}
+                      className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                        intakeLockType === "PATTERN"
+                          ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      প্যাটার্ন লক
+                    </button>
+                  </div>
+                </div>
+
+                {intakeLockType === "PIN" && (
+                  <div className="space-y-1.5 pt-1">
+                    <label className="block font-medium text-foreground text-[11px]">পিন কোড বা পাসওয়ার্ড</label>
+                    <div className="relative">
+                      <input
+                        type={showPin ? "text" : "password"}
+                        value={intakeLockPin}
+                        onChange={(e) => setIntakeLockPin(e.target.value)}
+                        placeholder="যেমন: ১২৩৪ বা 0000"
+                        className="w-full p-2.5 pr-10 rounded-lg border bg-background text-foreground font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPin(!showPin)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {intakeLockType === "PATTERN" && (
+                  <div className="flex flex-col sm:flex-row items-center gap-4 pt-1 bg-background/50 p-3 rounded-lg border">
+                    <div className="flex flex-col items-center">
+                      <svg width="180" height="180" className="bg-muted/40 rounded-xl border border-dashed select-none">
+                        {/* Connecting Lines */}
+                        {intakeLockPattern.slice(1).map((dot, idx) => {
+                          const prevDot = intakeLockPattern[idx];
+                          const p1 = DOT_COORDS[prevDot];
+                          const p2 = DOT_COORDS[dot];
+                          return (
+                            <line
+                              key={idx}
+                              x1={p1.x}
+                              y1={p1.y}
+                              x2={p2.x}
+                              y2={p2.y}
+                              stroke="#f59e0b"
+                              strokeWidth="4"
+                              strokeLinecap="round"
+                            />
+                          );
+                        })}
+                        {/* Dots */}
+                        {PATTERN_DOTS.map((dot) => {
+                          const coord = DOT_COORDS[dot];
+                          const isSelected = intakeLockPattern.includes(dot);
+                          const order = intakeLockPattern.indexOf(dot) + 1;
+                          return (
+                            <g
+                              key={dot}
+                              onClick={() => {
+                                if (!intakeLockPattern.includes(dot)) {
+                                  setIntakeLockPattern([...intakeLockPattern, dot]);
+                                }
+                              }}
+                              className="cursor-pointer group"
+                            >
+                              <circle
+                                cx={coord.x}
+                                cy={coord.y}
+                                r={isSelected ? 14 : 9}
+                                fill={isSelected ? "#f59e0b" : "#94a3b8"}
+                                className="transition-all group-hover:scale-125"
+                              />
+                              {isSelected ? (
+                                <text
+                                  x={coord.x}
+                                  y={coord.y + 4}
+                                  textAnchor="middle"
+                                  fill="#ffffff"
+                                  fontSize="11"
+                                  fontWeight="bold"
+                                >
+                                  {order}
+                                </text>
+                              ) : (
+                                <text
+                                  x={coord.x}
+                                  y={coord.y + 3}
+                                  textAnchor="middle"
+                                  fill="#ffffff"
+                                  fontSize="9"
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  {dot}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+                      </svg>
+                      <button
+                        type="button"
+                        onClick={() => setIntakeLockPattern([])}
+                        className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-semibold"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>প্যাটার্ন মুছুন (Reset)</span>
+                      </button>
+                    </div>
+
+                    <div className="flex-1 space-y-2 w-full text-xs">
+                      <div className="p-2.5 rounded-lg bg-muted/60 text-[11px] space-y-1">
+                        <div className="font-semibold text-foreground">অঙ্কিত প্যাটার্ন ক্রম:</div>
+                        <div className="font-mono text-amber-600 dark:text-amber-400 font-bold">
+                          {intakeLockPattern.length > 0
+                            ? intakeLockPattern.join(" ➔ ")
+                            : "বামে ১-৯ ডটে ক্লিক করে প্যাটার্ন আঁকুন"}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block font-medium text-foreground text-[11px] mb-1">
+                          প্যাটার্ন বিবরণ (ঐচ্ছিক)
+                        </label>
+                        <input
+                          type="text"
+                          value={intakeLockNotes}
+                          onChange={(e) => setIntakeLockNotes(e.target.value)}
+                          placeholder="যেমন: ইংরেজি 'L' আকৃতি বা 'Z' আকৃতি"
+                          className="w-full p-2 rounded-lg border bg-background text-foreground text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {intakeLockType === "NONE" && (
+                  <div className="p-2.5 bg-background rounded-lg border text-muted-foreground text-[11px] flex items-center gap-2">
+                    <Unlock className="w-4 h-4 text-emerald-600" />
+                    <span>ডিভাইসে কোনো স্ক্রিন লক নেই। মেরামত শেষে সরাসরি টেস্ট করা যাবে।</span>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION: BILLING & DUE */}
+              <div className="border border-emerald-500/30 rounded-xl p-3.5 bg-emerald-500/5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div className="flex items-center gap-2 font-bold text-foreground text-xs">
+                    <Banknote className="w-4 h-4 text-emerald-600" />
+                    <span>সার্ভিসিং বিল ও বাকি হিসাব (Billing & Due)</span>
+                  </div>
+                  <div className="text-xs font-bold">
+                    {Number(intakeEstimatedCost || 0) - Number(intakePaidAmount || 0) > 0 ? (
+                      <span className="text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                        বাকি বিল: {formatBDT(Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakePaidAmount || 0)))}
+                      </span>
+                    ) : Number(intakeEstimatedCost || 0) > 0 ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                        সম্পূর্ণ পরিশোধিত (বাকি নেই)
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-medium text-foreground mb-1">মোট সার্ভিস বিল (৳)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={intakeEstimatedCost}
+                      onChange={(e) => setIntakeEstimatedCost(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full p-2.5 rounded-lg border bg-background text-foreground font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-foreground mb-1">অগ্রিম জমা (Advance ৳)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={intakePaidAmount}
+                      onChange={(e) => setIntakePaidAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full p-2.5 rounded-lg border bg-background text-foreground font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-foreground mb-1">
+                      বাকি বিল (Due Bill ৳)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakePaidAmount || 0))}
+                      onChange={(e) => {
+                        const due = Math.max(0, Number(e.target.value || 0));
+                        const cost = Number(intakeEstimatedCost || 0);
+                        setIntakePaidAmount(Math.max(0, cost - due).toString());
+                      }}
+                      className="w-full p-2.5 rounded-lg border bg-background text-foreground font-bold text-rose-600 dark:text-rose-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Due Setup Buttons */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-emerald-500/20">
+                  <span className="text-[11px] text-muted-foreground font-medium">কুইক বাকি সিলেক্ট:</span>
+                  <button
+                    type="button"
+                    onClick={() => setIntakePaidAmount("0")}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/20 transition-all active:scale-95"
+                  >
+                    সম্পূর্ণ বাকি (০ টাকা অগ্রিম)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIntakePaidAmount(intakeEstimatedCost ? intakeEstimatedCost.toString() : "0")}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 transition-all active:scale-95"
+                  >
+                    ফুল পেইড (বাকি নেই)
+                  </button>
+                  {Number(intakeEstimatedCost) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIntakePaidAmount(Math.round(Number(intakeEstimatedCost) / 2).toString())}
+                      className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 transition-all active:scale-95"
+                    >
+                      ৫০% জমা (বাকি ৫০%)
+                    </button>
+                  )}
+                </div>
+
+                {Number(intakePaidAmount) > 0 && (
+                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-emerald-500/20">
+                    <div>
+                      <label className="block font-medium text-foreground text-[11px] mb-1">অগ্রিম পেমেন্ট মাধ্যম</label>
+                      <select
+                        value={intakePaymentMethod}
+                        onChange={(e) => setIntakePaymentMethod(e.target.value as any)}
+                        className="w-full p-2 rounded-lg border bg-background text-foreground text-xs"
+                      >
+                        <option value="CASH">ক্যাশ (Cash)</option>
+                        <option value="BKASH">বিকাশ (bKash)</option>
+                        <option value="NAGAD">নগদ (Nagad)</option>
+                        <option value="BANK">ব্যাংক ট্রান্সফার</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium pb-2">
+                        ✓ অগ্রিম টাকা ক্যাশ/অ্যাকাউন্টে স্বয়ংক্রিয়ভাবে জমা হবে
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -687,8 +1471,11 @@ export function RepairBoard({
                 </div>
               </div>
 
-              <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-[11px] leading-relaxed">
-                <strong>নিরাপত্তা সতর্কতা:</strong> গ্রাহকের ডিভাইসের গোপনীয় পিন/পাসওয়ার্ড কখনোই সফটওয়্যারে সেভ করবেন না। ডেলিভারির সময় গ্রাহকের উপস্থিতিতে আনলক করে যাচাই করুন।
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-lg text-[11px] leading-relaxed flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                <span>
+                  <strong>ল্যাব নোট:</strong> সার্ভিসিং এর পর ডিসপ্লে, টাচ ও মাইক্রোফোন পরীক্ষার জন্য পিন/প্যাটার্ন লক ও সম্ভাব্য বিল অ্যান্ট্রি করে রাখা সুবিধাজনক।
+                </span>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t">
@@ -906,7 +1693,7 @@ export function RepairBoard({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">গ্রাহক:</span>
-                  <span className="font-semibold text-foreground">{activeJob.customer.name}</span>
+                  <span className="font-semibold text-foreground">{activeJob.customer.name} ({activeJob.customer.phone})</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">মজুরি (Labour):</span>
@@ -916,9 +1703,21 @@ export function RepairBoard({
                   <span className="text-muted-foreground">পার্টস (Parts):</span>
                   <span>{formatBDT(activeJob.partsCost)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-sm text-foreground pt-1 border-t">
+                <div className="flex justify-between font-bold text-xs text-foreground pt-1 border-t">
                   <span>সর্বমোট বিল (Total):</span>
                   <span className="text-primary">{formatBDT(activeJob.totalAmount)}</span>
+                </div>
+                {activeJob.paidAmount > 0 && (
+                  <div className="flex justify-between text-xs text-emerald-600 font-semibold">
+                    <span>পূর্বে অগ্রিম জমা:</span>
+                    <span>- {formatBDT(activeJob.paidAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-sm text-foreground pt-1 border-t border-dashed">
+                  <span>এখন প্রদেয় বাকি বিল (Net Due):</span>
+                  <span className="text-amber-600 dark:text-amber-400">
+                    {formatBDT(Math.max(0, activeJob.totalAmount - activeJob.paidAmount))}
+                  </span>
                 </div>
               </div>
 
@@ -937,24 +1736,45 @@ export function RepairBoard({
               </div>
 
               <div>
-                <label className="block font-medium text-foreground mb-1">আদায়কৃত টাকা (Paid Amount) *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-medium text-foreground">এখন আদায়কৃত টাকা (Paid Amount) *</label>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setDeliverPaidAmount(Math.max(0, activeJob.totalAmount - activeJob.paidAmount))}
+                      className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded hover:bg-emerald-500/20"
+                    >
+                      ফুল পেইড
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeliverPaidAmount(0)}
+                      className="text-[10px] font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded hover:bg-rose-500/20"
+                    >
+                      সব বাকি (৳০)
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="number"
                   min="0"
-                  max={activeJob.totalAmount}
+                  max={Math.max(0, activeJob.totalAmount - activeJob.paidAmount)}
                   value={deliverPaidAmount}
                   onChange={(e) => setDeliverPaidAmount(Number(e.target.value))}
-                  className="w-full p-2.5 rounded-lg border bg-background text-foreground"
+                  className="w-full p-2.5 rounded-lg border bg-background text-foreground font-semibold"
                   required
                 />
               </div>
 
-              {activeJob.totalAmount - deliverPaidAmount > 0 && (
-                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg font-semibold flex justify-between">
-                  <span>গ্রাহক বকেয়া (Due):</span>
-                  <span>{formatBDT(activeJob.totalAmount - deliverPaidAmount)}</span>
+              {Math.max(0, activeJob.totalAmount - activeJob.paidAmount) - deliverPaidAmount > 0 && (
+                <div className="p-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 rounded-lg font-semibold flex justify-between items-center text-xs">
+                  <span>গ্রাহক হিসেবে অবশিষ্ট বাকি (Remaining Due to Ledger):</span>
+                  <span className="font-bold text-sm font-mono">
+                    {formatBDT(Math.max(0, activeJob.totalAmount - activeJob.paidAmount) - deliverPaidAmount)}
+                  </span>
                 </div>
               )}
+
 
               <div>
                 <label className="block font-medium text-foreground mb-1">ওয়ারেন্টি মেয়াদ (দিন)</label>
@@ -1024,7 +1844,15 @@ export function RepairBoard({
                 <div><span className="font-bold">ডিভাইস:</span> {activeJob.deviceBrand} {activeJob.deviceModel}</div>
                 {activeJob.deviceImei && <div><span className="font-bold">IMEI:</span> {activeJob.deviceImei}</div>}
                 <div><span className="font-bold">অবস্থা:</span> {activeJob.intakeCondition}</div>
-                <div><span className="font-bold">অভিযোগ:</span> {activeJob.reportedIssue}</div>
+                <div><span className="font-bold">অভিযোগ:</span> {activeJob.reportedIssue || "কোনো সমস্যা বর্ণিত নেই"}</div>
+                <div>
+                  <span className="font-bold">স্ক্রিন লক:</span>{" "}
+                  {activeJob.screenLockType === "PIN"
+                    ? `পিন (${activeJob.devicePasscode || "****"})`
+                    : activeJob.screenLockType === "PATTERN"
+                      ? `প্যাটার্ন (${activeJob.devicePasscode || "দেওয়া আছে"})`
+                      : "লক নেই"}
+                </div>
               </div>
 
               {activeJob.parts.length > 0 && (
@@ -1040,16 +1868,18 @@ export function RepairBoard({
               )}
 
               <div className="border-t border-dashed border-slate-300 pt-2 space-y-1">
-                <div className="flex justify-between">
-                  <span>মজুরি বিল (Labour):</span>
-                  <span>{formatBDT(activeJob.labourCost)}</span>
-                </div>
+                {activeJob.labourCost > 0 && (
+                  <div className="flex justify-between">
+                    <span>মজুরি বিল (Labour):</span>
+                    <span>{formatBDT(activeJob.labourCost)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-sm text-slate-950 pt-1 border-t">
                   <span>সর্বমোট বিল (Total):</span>
-                  <span>{formatBDT(activeJob.totalAmount)}</span>
+                  <span>{formatBDT(activeJob.totalAmount > 0 ? activeJob.totalAmount : activeJob.estimatedCost)}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-emerald-700">
-                  <span>পরিশোধিত (Paid):</span>
+                  <span>পরিশোধিত / অগ্রিম (Paid):</span>
                   <span>{formatBDT(activeJob.paidAmount)}</span>
                 </div>
                 {activeJob.dueAmount > 0 && (
@@ -1078,6 +1908,85 @@ export function RepairBoard({
           </div>
         </div>
       )}
+      {/* QUICK ADD CUSTOMER MODAL IN SERVICE */}
+      {isQuickCustomerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-5 py-3.5 border-b border-border/80 flex items-center justify-between bg-muted/40">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-foreground text-sm">নতুন গ্রাহক নিবন্ধন</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuickCustomerOpen(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleQuickAddCustomer} className="p-5 space-y-3.5 text-xs">
+              {quickCustError && (
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-semibold">
+                  {quickCustError}
+                </div>
+              )}
+              <div>
+                <label className="block font-bold text-foreground mb-1">গ্রাহকের নাম *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: মোঃ সাকিব হোসেন"
+                  value={quickCustName}
+                  onChange={(e) => setQuickCustName(e.target.value)}
+                  className="w-full px-3 py-2 bg-background rounded-xl border border-border text-foreground"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-foreground mb-1">মোবাইল নম্বর *</label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="যেমন: 01712345678"
+                  value={quickCustPhone}
+                  onChange={(e) => setQuickCustPhone(e.target.value)}
+                  className="w-full px-3 py-2 bg-background rounded-xl border border-border text-foreground font-mono"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-foreground mb-1">ঠিকানা (ঐচ্ছিক)</label>
+                <input
+                  type="text"
+                  placeholder="ঠিকানা..."
+                  value={quickCustAddress}
+                  onChange={(e) => setQuickCustAddress(e.target.value)}
+                  className="w-full px-3 py-2 bg-background rounded-xl border border-border text-foreground"
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickCustomerOpen(false)}
+                  className="px-3.5 py-2 rounded-xl border border-border font-semibold text-foreground hover:bg-muted"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={quickCustLoading}
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-md disabled:opacity-50"
+                >
+                  {quickCustLoading ? "সংরক্ষণ হচ্ছে..." : "গ্রাহক যোগ ও নির্বাচন করুন"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

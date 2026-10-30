@@ -22,6 +22,8 @@ export interface PaymentSplitInput {
 export interface CreateSaleInput {
   shopId: string;
   customerId?: string | null;
+  customerPhone?: string | null;
+  customerName?: string | null;
   cashierId: string;
   locationId: string;
   items: SaleItemInput[];
@@ -45,7 +47,7 @@ export async function createSale(input: CreateSaleInput) {
       orderBy: { openingTime: "desc" },
     });
 
-    // 2. Fetch customer if provided
+    // 2. Fetch customer if provided, or resolve/create by phone
     let customer: any = null;
     if (input.customerId) {
       customer = await tx.customer.findUnique({
@@ -53,6 +55,46 @@ export async function createSale(input: CreateSaleInput) {
       });
       if (!customer || customer.shopId !== input.shopId) {
         throw new NotFoundError("Customer not found or does not belong to this shop.");
+      }
+    } else if (input.customerPhone && input.customerPhone.trim()) {
+      const cleanPhone = input.customerPhone.trim();
+      customer = await tx.customer.findFirst({
+        where: {
+          shopId: input.shopId,
+          phone: cleanPhone,
+        },
+      });
+
+      if (!customer) {
+        customer = await tx.customer.create({
+          data: {
+            shopId: input.shopId,
+            name: input.customerName?.trim() || `কাস্টমার (${cleanPhone})`,
+            phone: cleanPhone,
+            totalDue: 0,
+          },
+        });
+      }
+    } else if (input.customerName && input.customerName.trim()) {
+      const cleanName = input.customerName.trim();
+      customer = await tx.customer.findFirst({
+        where: {
+          shopId: input.shopId,
+          name: cleanName,
+        },
+      });
+
+      if (!customer) {
+        const uniqueSuffix = Date.now().toString().slice(-8);
+        const generatedPhone = `010${uniqueSuffix}`;
+        customer = await tx.customer.create({
+          data: {
+            shopId: input.shopId,
+            name: cleanName,
+            phone: generatedPhone,
+            totalDue: 0,
+          },
+        });
       }
     }
 
@@ -171,7 +213,7 @@ export async function createSale(input: CreateSaleInput) {
 
     if (dueAmount > 0 && !customer) {
       throw new ValidationError(
-        "Credit sale with due amount requires a registered customer. Walk-in sales must be paid in full."
+        "Credit sale with due amount requires a registered customer. বাকি বিক্রয়ের ক্ষেত্রে গ্রাহকের নাম ও মোবাইল নম্বর আবশ্যক।"
       );
     }
 

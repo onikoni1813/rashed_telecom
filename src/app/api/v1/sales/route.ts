@@ -24,6 +24,8 @@ const paymentSplitSchema = z.object({
 const createSaleSchema = z.object({
   shopId: z.string().uuid(),
   customerId: z.string().uuid().optional().nullable(),
+  customerPhone: z.string().max(20).optional().nullable(),
+  customerName: z.string().max(100).optional().nullable(),
   locationId: z.string().uuid(),
   items: z.array(saleItemSchema).min(1),
   discount: z.number().min(0).default(0),
@@ -116,6 +118,8 @@ export async function POST(req: Request) {
         const saleResult = await createSale({
           shopId: parsed.data.shopId,
           customerId: parsed.data.customerId || null,
+          customerPhone: parsed.data.customerPhone || null,
+          customerName: parsed.data.customerName || null,
           cashierId: authUser.id,
           locationId: parsed.data.locationId,
           items: parsed.data.items,

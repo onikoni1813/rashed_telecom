@@ -72,18 +72,53 @@ describe("Repair Servicing Domain Service (Phase 4)", () => {
   const jobId = "job-uuid-1";
   const productId = "part-disp-uuid-1";
 
-  it("strictly enforces security policy: rejects customer device PIN, passcode, or password in intake fields", async () => {
-    await expect(
-      createServiceJob({
-        shopId,
-        customerId,
-        deviceBrand: "Samsung",
-        deviceModel: "Galaxy A15",
-        intakeCondition: "Good condition, pin: 1234", // Forbidden
-        reportedIssue: "Screen flicker",
-        intakeCashierId: cashierId,
+  it("creates a new service job with optional reportedIssue, screenLockType, devicePasscode and advance bill", async () => {
+    vi.mocked(prisma.customer.findUnique).mockResolvedValueOnce({
+      id: customerId,
+      shopId,
+      name: "Md. Al-Amin",
+    } as any);
+
+    vi.mocked(prisma.serviceJob.count).mockResolvedValueOnce(0);
+    vi.mocked(prisma.payment.count).mockResolvedValueOnce(0);
+    vi.mocked(prisma.payment.create).mockResolvedValueOnce({ id: "pay-1" } as any);
+    vi.mocked(prisma.serviceJob.create).mockResolvedValueOnce({
+      id: jobId,
+      shopId,
+      jobNumber: "JOB-000001",
+      deviceBrand: "Samsung",
+      deviceModel: "Galaxy A15",
+      screenLockType: "PIN",
+      devicePasscode: "1234",
+      estimatedCost: 1500,
+      paidAmount: 500,
+      dueAmount: 1000,
+      status: "INTAKE",
+    } as any);
+
+    const job = await createServiceJob({
+      shopId,
+      customerId,
+      deviceBrand: "Samsung",
+      deviceModel: "Galaxy A15",
+      intakeCondition: "Good condition",
+      screenLockType: "PIN",
+      devicePasscode: "1234",
+      estimatedCost: 1500,
+      paidAmount: 500,
+      intakeCashierId: cashierId,
+    });
+
+    expect(job.jobNumber).toBe("JOB-000001");
+    expect(prisma.serviceJob.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          screenLockType: "PIN",
+          devicePasscode: "1234",
+          reportedIssue: "কোনো সুনির্দিষ্ট সমস্যা উল্লেখ নেই",
+        }),
       })
-    ).rejects.toThrow("Security policy violation: Storing customer device PINs");
+    );
   });
 
   it("creates a new service job with sequential job number and initial INTAKE status", async () => {

@@ -2,6 +2,11 @@ import { prisma } from "@/lib/db/prisma";
 import { UnauthorizedError, ForbiddenError } from "@/lib/errors";
 import { PermissionKey } from "@/lib/permissions";
 import { createServerSupabaseClient } from "./supabase-server";
+import {
+  parseCookie,
+  verifyLocalSessionToken,
+  COOKIE_SESSION_NAME,
+} from "./local-session";
 
 export interface AuthenticatedUser {
   id: string;
@@ -21,18 +26,60 @@ export interface ShopMemberDetails {
 
 /**
  * Extracts and verifies the authenticated user from the HTTP request.
- * Checks Authorization header using Supabase Auth.
+ * Supports:
+ * 1. Local session cookie (`rt_session`)
+ * 2. Local session token in `Authorization: Bearer <token>`
+ * 3. Simulated test header (`x-test-user-id`)
+ * 4. Supabase Auth Bearer token
  */
 export async function requireAuth(req: Request): Promise<AuthenticatedUser> {
   const authHeader = req.headers.get("authorization");
+  const cookieHeader = req.headers.get("cookie");
 
-  // In development and test environments, allow simulated authentication via header
+  // 1. Check local session cookie (rt_session)
+  if (cookieHeader) {
+    const localToken = parseCookie(cookieHeader, COOKIE_SESSION_NAME);
+    if (localToken) {
+      const session = verifyLocalSessionToken(localToken);
+      if (session) {
+        return {
+          id: session.userId,
+          email: session.email || undefined,
+          role: session.roleName || undefined,
+        };
+      }
+    }
+  }
+
+  // 2. Check Bearer token (if local session token passed via Authorization header)
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const bearerToken = authHeader.replace("Bearer ", "").trim();
+    if (bearerToken) {
+      const session = verifyLocalSessionToken(bearerToken);
+      if (session) {
+        return {
+          id: session.userId,
+          email: session.email || undefined,
+          role: session.roleName || undefined,
+        };
+      }
+    }
+  }
+
+  // 3. In development and test environments, allow simulated authentication via header
   if (process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development") {
     const testUserId = req.headers.get("x-test-user-id");
     if (testUserId) {
       return {
         id: testUserId,
         email: req.headers.get("x-test-user-email") || "admin@rashedtelecom.local",
+      };
+    }
+    // In local development, fallback to default admin if no auth header present
+    if (process.env.NODE_ENV === "development" && (!authHeader || !authHeader.startsWith("Bearer "))) {
+      return {
+        id: "00000000-0000-0000-0000-000000000001",
+        email: "admin@rashedtelecom.local",
       };
     }
   }

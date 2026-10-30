@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "রাশেদ টেলিকম — শপ ম্যানেজমেন্ট",
     short_name: "Rashed Telecom",
-    description: "টেলিকম পণ্য বিক্রয়, মোবাইল সার্ভিসিং ও অ্যাকাউন্টিং পিডব্লিউএ (Telecom Sales & Mobile Servicing Management PWA)",
+    description: "টেলিকম পণ্য বিক্রয়, মোবাইল সার্ভিসিং ও হিসাব ব্যবস্থাপনা",
     start_url: "/app",
     scope: "/",
     display: "standalone",
@@ -42,19 +42,19 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
-        name: "পিওএস টার্মিনাল (POS Terminal)",
+        name: "পিওএস টার্মিনাল",
         url: "/app/pos",
         description: "দ্রুত বিক্রয় ও ইনভয়েস প্রিন্ট",
         icons: [{ src: "/icons/icon-192.jpg", sizes: "192x192" }],
       },
       {
-        name: "সার্ভিসিং জব (Mobile Servicing)",
+        name: "সার্ভিসিং ল্যাব",
         url: "/app/service",
         description: "মোবাইল মেরামত গ্রহণ ও স্ট্যাটাস আপডেট",
         icons: [{ src: "/icons/icon-192.jpg", sizes: "192x192" }],
       },
       {
-        name: "পণ্য ও মজুত (Products & Stock)",
+        name: "পণ্য ও স্টক",
         url: "/app/products",
         description: "পণ্য তালিকা ও ইনভেন্টরি চেক",
         icons: [{ src: "/icons/icon-192.jpg", sizes: "192x192" }],
