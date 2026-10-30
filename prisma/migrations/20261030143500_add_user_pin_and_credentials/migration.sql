@@ -20,3 +20,4 @@ CREATE TABLE IF NOT EXISTS "user_credentials" (
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "user_credentials_user_id_idx" ON "user_credentials"("user_id");
+

@@ -64,3 +64,4 @@ describe("Local Session & PIN Security", () => {
     expect(parseCookie(null, "rt_session")).toBeNull();
   });
 });
+
