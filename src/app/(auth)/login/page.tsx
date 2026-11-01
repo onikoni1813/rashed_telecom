@@ -278,34 +278,22 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Biometric One-Touch Button */}
-        {biometricsAvailable && (
+        {/* Biometric One-Touch Button - Only displayed when staff has already registered biometrics */}
+        {biometricsAvailable && selectedStaff?.hasBiometrics && (
           <div className="mb-6 relative z-10">
             <button
               type="button"
               disabled={biometricLoading || loading}
               onClick={handleBiometricLogin}
-              className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm shadow-lg border flex items-center justify-center gap-2.5 transition-all transform active:scale-98 disabled:opacity-50 ${
-                selectedStaff?.hasBiometrics
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/25 border-emerald-400/30"
-                  : "bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-slate-200 border-white/10 shadow-slate-900/40"
-              }`}
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/25 border border-emerald-400/30 flex items-center justify-center gap-2.5 transition-all transform active:scale-98 disabled:opacity-50"
             >
               <Fingerprint
-                className={`w-5 h-5 ${
-                  biometricLoading
-                    ? "animate-pulse"
-                    : selectedStaff?.hasBiometrics
-                      ? "text-emerald-300"
-                      : "text-amber-400"
-                }`}
+                className={`w-5 h-5 ${biometricLoading ? "animate-pulse" : "text-emerald-300"}`}
               />
               <span>
                 {biometricLoading
                   ? "ফিঙ্গারপ্রিন্ট স্ক্যান করা হচ্ছে..."
-                  : selectedStaff?.hasBiometrics
-                    ? "ফিঙ্গারপ্রিন্ট স্পর্শ করে প্রবেশ করুন"
-                    : "ফিঙ্গারপ্রিন্ট সেট করতে প্রথমে পিন দিয়ে ঢুকুন"}
+                  : "ফিঙ্গারপ্রিন্ট স্পর্শ করে প্রবেশ করুন"}
               </span>
             </button>
           </div>
