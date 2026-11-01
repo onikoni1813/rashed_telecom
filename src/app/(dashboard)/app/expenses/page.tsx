@@ -1,10 +1,28 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { ExpensesView, SerializedExpense, SerializedExpenseCategory } from "@/features/accounting/expenses-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function ExpensesPage() {
+export default function ExpensesPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="দোকান খরচ খাতা"
+          badge="Daily Expenses"
+          cardsCount={4}
+          showFilters={true}
+        />
+      }
+    >
+      <ExpensesDataLoader />
+    </Suspense>
+  );
+}
+
+async function ExpensesDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   // Fetch all expenses and categories for the shop

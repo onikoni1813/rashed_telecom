@@ -1,14 +1,15 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import {
   StatementsView,
   StatementCustomer,
   StatementSupplier,
 } from "@/features/statements/statements-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function StatementsPage() {
+async function StatementsDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   const [rawCustomers, rawSuppliers] = await Promise.all([
@@ -44,5 +45,23 @@ export default async function StatementsPage() {
       customers={customers}
       suppliers={suppliers}
     />
+  );
+}
+
+export default function StatementsPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="গ্রাহক ও সাপ্লায়ার স্টেটমেন্ট"
+          subtitle="লেনদেন বিবরণী ও লেজার তালিকা লোড হচ্ছে..."
+          cardsCount={2}
+          showFilter={true}
+          rowsCount={6}
+        />
+      }
+    >
+      <StatementsDataLoader />
+    </Suspense>
   );
 }

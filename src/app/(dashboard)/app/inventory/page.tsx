@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import {
   InventoryView,
@@ -6,10 +6,28 @@ import {
   SerializedMovement,
   SerializedShopLocation,
 } from "@/features/inventory/inventory-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function InventoryPage() {
+export default function InventoryPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="ইনভেন্টরি স্টক ও গুদাম"
+          badge="Stock Realtime"
+          cardsCount={4}
+          showFilters={true}
+        />
+      }
+    >
+      <InventoryDataLoader />
+    </Suspense>
+  );
+}
+
+async function InventoryDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   // Parallel fetch stock balances, movements, and locations

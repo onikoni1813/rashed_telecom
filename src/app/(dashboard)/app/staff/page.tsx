@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import {
   getStaffList,
@@ -12,10 +12,11 @@ import {
   SerializedPayroll,
   SerializedRole,
 } from "@/features/staff/staff-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function StaffPage() {
+async function StaffDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   const [rawStaff, rawAttendance, rawPayroll, roles] = await Promise.all([
@@ -92,5 +93,23 @@ export default async function StaffPage() {
       payrollList={payrollList}
       roles={serializedRoles}
     />
+  );
+}
+
+export default function StaffPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="স্টাফ ও কর্মচারী ব্যবস্থাপনা"
+          subtitle="কর্মচারী তালিকা, উপস্থিতি ও পে-রোল লোড হচ্ছে..."
+          cardsCount={3}
+          showFilter={true}
+          rowsCount={6}
+        />
+      }
+    >
+      <StaffDataLoader />
+    </Suspense>
   );
 }

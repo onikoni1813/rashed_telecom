@@ -1,10 +1,11 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { SuppliersView, SerializedSupplier } from "@/features/suppliers/suppliers-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function SuppliersPage() {
+async function SuppliersDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   const rawSuppliers = await prisma.supplier.findMany({
@@ -29,5 +30,23 @@ export default async function SuppliersPage() {
     <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
       <SuppliersView shopId={defaultShopId} initialSuppliers={suppliers} />
     </div>
+  );
+}
+
+export default function SuppliersPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="সাপ্লায়ার ব্যবস্থাপনা"
+          subtitle="সরবরাহকারী তালিকা ও দেনার বিবরণ লোড হচ্ছে..."
+          cardsCount={3}
+          showFilter={true}
+          rowsCount={6}
+        />
+      }
+    >
+      <SuppliersDataLoader />
+    </Suspense>
   );
 }

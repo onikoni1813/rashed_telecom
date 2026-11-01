@@ -1,10 +1,28 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { ProductCatalogView, SerializedProduct, SerializedCategory, SerializedLocation } from "@/features/products/product-catalog-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductsPage() {
+export default function ProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="পণ্য তালিকা ও ক্যাটালগ"
+          badge="Inventory Active"
+          cardsCount={4}
+          showFilters={true}
+        />
+      }
+    >
+      <ProductsDataLoader />
+    </Suspense>
+  );
+}
+
+async function ProductsDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   // Parallel fetch products, categories, locations
@@ -18,6 +36,7 @@ export default async function ProductsPage() {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 100,
     }),
     prisma.category.findMany({
       where: { shopId: defaultShopId },

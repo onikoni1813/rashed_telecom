@@ -1,10 +1,28 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { PosTerminal } from "@/features/sales/pos-terminal";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function PosPage() {
+export default function PosPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="POS কাউন্টার টার্মিনাল"
+          badge="Live Billing"
+          cardsCount={0}
+          showFilters={false}
+        />
+      }
+    >
+      <PosDataLoader />
+    </Suspense>
+  );
+}
+
+async function PosDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
   const defaultCashierId = "00000000-0000-0000-0000-000000000001";
 

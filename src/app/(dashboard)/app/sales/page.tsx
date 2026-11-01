@@ -1,13 +1,14 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { formatBDT } from "@/lib/i18n";
-import { Receipt, DollarSign, TrendingUp, AlertCircle, ShoppingCart } from "lucide-react";
+import { Receipt, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { SalesListView, SaleSummaryItem } from "@/features/sales/sales-list-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function SalesPage() {
+async function SalesDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   const [fetchedLocation, rawSales] = await Promise.all([
@@ -28,6 +29,7 @@ export default async function SalesPage() {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 100,
     }),
   ]);
 
@@ -133,5 +135,23 @@ export default async function SalesPage() {
       {/* Sales List Table */}
       <SalesListView sales={sales} shopId={defaultShopId} locationId={location.id} />
     </div>
+  );
+}
+
+export default function SalesPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="বিক্রয় ও ইনভয়েস"
+          subtitle="দৈনিক বিক্রয়ের হিসাব ও ক্যাশ মেমো লোড হচ্ছে..."
+          cardsCount={4}
+          showFilter={true}
+          rowsCount={8}
+        />
+      }
+    >
+      <SalesDataLoader />
+    </Suspense>
   );
 }

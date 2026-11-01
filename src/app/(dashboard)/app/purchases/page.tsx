@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import {
   PurchasingView,
@@ -7,10 +7,28 @@ import {
   SerializedProductOption,
   SerializedLocationOption,
 } from "@/features/purchases/purchasing-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function PurchasesPage() {
+export default function PurchasesPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="কেনাকাটা ও সাপ্লায়ার পারচেজ"
+          badge="Supplier PO"
+          cardsCount={4}
+          showFilters={true}
+        />
+      }
+    >
+      <PurchasesDataLoader />
+    </Suspense>
+  );
+}
+
+async function PurchasesDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   // Parallel fetch purchase orders, suppliers, products, and locations

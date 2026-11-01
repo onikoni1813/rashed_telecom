@@ -1,12 +1,30 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { formatBDT } from "@/lib/i18n";
-import { Wrench, CheckCircle2, Clock, AlertCircle, Sparkles, ShieldCheck, DollarSign, Activity } from "lucide-react";
+import { Wrench, CheckCircle2, Sparkles, ShieldCheck, DollarSign, Activity } from "lucide-react";
 import { RepairBoard, SerializedJob } from "@/features/repairs/repair-board";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function ServicePage() {
+export default function ServicePage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="মোবাইল সার্ভিসিং ও টেকনিক্যাল ওয়ার্কবেঞ্চ"
+          badge="Live Queue"
+          cardsCount={4}
+          showFilters={true}
+        />
+      }
+    >
+      <ServiceDataLoader />
+    </Suspense>
+  );
+}
+
+async function ServiceDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
   const defaultUserId = "00000000-0000-0000-0000-000000000001";
 

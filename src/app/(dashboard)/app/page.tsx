@@ -1,11 +1,12 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { DashboardView, DashboardMetricData } from "@/features/dashboard/dashboard-view";
 import { getPerformanceAnalytics } from "@/features/dashboard/analytics-service";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+async function DashboardDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   const todayStart = new Date();
@@ -154,5 +155,23 @@ export default async function DashboardPage() {
       initialAnalytics={initialAnalytics}
       shopId={defaultShopId}
     />
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="ড্যাশবোর্ড ওভারভিউ"
+          subtitle="দোকানের সামগ্রিক হিসাব ও রিয়েলটাইম কার্যক্রম লোড হচ্ছে..."
+          cardsCount={4}
+          showFilter={false}
+          rowsCount={6}
+        />
+      }
+    >
+      <DashboardDataLoader />
+    </Suspense>
   );
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import {
   getTrialBalance,
@@ -9,10 +9,11 @@ import {
   SerializedAccount,
   SerializedJournalEntry,
 } from "@/features/accounting/accounts-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function AccountsPage() {
+async function AccountsDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
   // Fetch Accounts and Journal Entries
@@ -89,5 +90,23 @@ export default async function AccountsPage() {
         balanceSheet={balanceSheet}
       />
     </div>
+  );
+}
+
+export default function AccountsPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="অ্যাকাউন্টিং ও খতিয়ান"
+          subtitle="হিসাব তালিকা, জার্নাল এন্ট্রি ও ব্যালেন্স শীট লোড হচ্ছে..."
+          cardsCount={4}
+          showFilter={true}
+          rowsCount={6}
+        />
+      }
+    >
+      <AccountsDataLoader />
+    </Suspense>
   );
 }

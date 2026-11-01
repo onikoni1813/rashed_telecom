@@ -1,13 +1,14 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { getApprovalRequests } from "@/features/approvals/approval-service";
 import {
   ApprovalsView,
   SerializedApprovalRequest,
 } from "@/features/approvals/approvals-view";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function ApprovalsPage() {
+async function ApprovalsDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
   const defaultUserId = "00000000-0000-0000-0000-000000000001";
 
@@ -35,5 +36,23 @@ export default async function ApprovalsPage() {
       currentUserId={defaultUserId}
       requests={requests}
     />
+  );
+}
+
+export default function ApprovalsPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageSkeleton
+          title="অনুমোদন অনুরোধ (Approvals)"
+          subtitle="ডিসকাউন্ট ও সমন্বয় অনুমোদনের তালিকা লোড হচ্ছে..."
+          cardsCount={3}
+          showFilter={true}
+          rowsCount={6}
+        />
+      }
+    >
+      <ApprovalsDataLoader />
+    </Suspense>
   );
 }
