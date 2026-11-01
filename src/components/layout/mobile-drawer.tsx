@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Locale } from "@/types";
+import { useNavigation } from "./navigation-context";
 
 export interface DrawerItemConfig {
   href: string;
@@ -196,13 +197,12 @@ interface MobileDrawerProps {
 export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const pathname = usePathname();
   const [search, setSearch] = useState("");
-  const [navigatingHref, setNavigatingHref] = useState<string | null>(null);
+  const { navigatingTarget, startNavigation } = useNavigation();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Close when pathname changes
   useEffect(() => {
     onClose();
-    setNavigatingHref(null);
   }, [pathname, onClose]);
 
   // Lock body scroll when open
@@ -215,7 +215,6 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     } else {
       document.body.style.overflow = "";
       setSearch("");
-      setNavigatingHref(null);
     }
 
     return () => {
@@ -252,10 +251,8 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     : [];
 
   const handleItemClick = (href: string) => {
-    if (href !== pathname) {
-      setNavigatingHref(href);
-    }
-    // Drawer will unmount upon pathname update
+    startNavigation(href);
+    onClose();
   };
 
   const handleLogout = async () => {
@@ -353,7 +350,7 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                     key={item.href}
                     item={item}
                     currentPathname={pathname}
-                    isNavigating={navigatingHref === item.href}
+                    isNavigating={navigatingTarget === item.href}
                     onClick={() => handleItemClick(item.href)}
                   />
                 ))
@@ -372,7 +369,7 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                       key={item.href}
                       item={item}
                       currentPathname={pathname}
-                      isNavigating={navigatingHref === item.href}
+                      isNavigating={navigatingTarget === item.href}
                       onClick={() => handleItemClick(item.href)}
                     />
                   ))}

@@ -10,6 +10,7 @@ export default async function SuppliersPage() {
   const rawSuppliers = await prisma.supplier.findMany({
     where: { shopId: defaultShopId },
     orderBy: { createdAt: "desc" },
+    take: 100,
   });
 
   const suppliers: SerializedSupplier[] = rawSuppliers.map((s: any) => ({

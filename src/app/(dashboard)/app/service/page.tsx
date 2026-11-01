@@ -35,11 +35,13 @@ export default async function ServicePage() {
         warranties: true,
       },
       orderBy: { createdAt: "desc" },
+      take: 50,
     }),
     prisma.customer.findMany({
       where: { shopId: defaultShopId },
       select: { id: true, name: true, phone: true },
       orderBy: { name: "asc" },
+      take: 100,
     }),
     prisma.user.findMany({
       where: {
@@ -62,6 +64,7 @@ export default async function ServicePage() {
         stockBalances: true,
       },
       orderBy: { name: "asc" },
+      take: 100,
     }),
   ]);
 

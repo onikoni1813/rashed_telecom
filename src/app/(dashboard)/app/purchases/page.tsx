@@ -25,10 +25,12 @@ export default async function PurchasesPage() {
         goodsReceipts: true,
       },
       orderBy: { createdAt: "desc" },
+      take: 40,
     }),
     prisma.supplier.findMany({
       where: { shopId: defaultShopId },
       orderBy: { name: "asc" },
+      take: 50,
     }),
     prisma.product.findMany({
       where: { shopId: defaultShopId, isActive: true },
@@ -39,6 +41,7 @@ export default async function PurchasesPage() {
         costPrice: true,
       },
       orderBy: { name: "asc" },
+      take: 100,
     }),
     prisma.location.findMany({
       where: { shopId: defaultShopId },

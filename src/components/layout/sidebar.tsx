@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Locale } from "@/types";
 import { getDictionary } from "@/lib/i18n";
+import { useNavigation } from "./navigation-context";
 
 interface NavItemConfig {
   href: string;
@@ -64,18 +65,7 @@ interface SidebarProps {
 export function Sidebar({ locale = "bn" }: SidebarProps) {
   const pathname = usePathname();
   const dict = getDictionary(locale);
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
-
-  // Clear pending state when route updates
-  useEffect(() => {
-    setPendingHref(null);
-  }, [pathname]);
-
-  const handleItemClick = (href: string) => {
-    if (href !== pathname) {
-      setPendingHref(href);
-    }
-  };
+  const { navigatingTarget, startNavigation } = useNavigation();
 
   return (
     <aside className="hidden lg:flex w-64 flex-col border-r border-border/80 bg-card/85 backdrop-blur-2xl h-screen sticky top-0 select-none shadow-sm z-30">
@@ -116,8 +106,8 @@ export function Sidebar({ locale = "bn" }: SidebarProps) {
               ? pathname === "/app" || pathname === "/"
               : pathname.startsWith(item.href);
 
-          const isPending = pendingHref === item.href;
-          const isActive = pendingHref ? isPending : isCurrent;
+          const isPending = navigatingTarget === item.href;
+          const isActive = navigatingTarget ? isPending : isCurrent;
           const isLoading = isPending && !isCurrent;
 
           return (
@@ -125,7 +115,7 @@ export function Sidebar({ locale = "bn" }: SidebarProps) {
               key={item.href}
               href={item.href}
               prefetch={true}
-              onClick={() => handleItemClick(item.href)}
+              onClick={() => startNavigation(item.href)}
               className={cn(
                 "relative group flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 active:scale-[0.98]",
                 isActive

@@ -43,6 +43,7 @@ export default async function PosPage() {
     prisma.customer.findMany({
       where: { shopId: defaultShopId },
       orderBy: { name: "asc" },
+      take: 100,
     }),
   ]);
 

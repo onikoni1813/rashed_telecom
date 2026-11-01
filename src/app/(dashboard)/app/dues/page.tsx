@@ -14,6 +14,7 @@ export default async function DuesPage() {
       totalDue: { gt: 0 },
     },
     orderBy: { totalDue: "desc" },
+    take: 100,
   });
 
   const customersWithDue: SerializedCustomerDue[] = rawCustomers.map((c) => ({

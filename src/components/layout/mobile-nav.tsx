@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Locale } from "@/types";
+import { useNavigation } from "./navigation-context";
 
 interface MobileNavItem {
   href: string;
@@ -40,18 +41,7 @@ export function MobileNav({
   isDrawerOpen = false,
 }: MobileNavProps) {
   const pathname = usePathname();
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
-
-  // Clear pending state when pathname updates
-  useEffect(() => {
-    setPendingHref(null);
-  }, [pathname]);
-
-  const handleLinkClick = (href: string) => {
-    if (href !== pathname) {
-      setPendingHref(href);
-    }
-  };
+  const { navigatingTarget, startNavigation } = useNavigation();
 
   // Determine if the active route is none of the primary 4 items
   const isPrimaryActive = PRIMARY_MOBILE_ITEMS.some((item) =>
@@ -60,7 +50,7 @@ export function MobileNav({
       : pathname.startsWith(item.href)
   );
 
-  const isMenuTabActive = isDrawerOpen || (!isPrimaryActive && !pendingHref);
+  const isMenuTabActive = isDrawerOpen || (!isPrimaryActive && !navigatingTarget);
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/90 backdrop-blur-2xl border-t border-border/80 h-16 flex items-center justify-around px-2 shadow-2xl touch-manipulation">
@@ -71,8 +61,8 @@ export function MobileNav({
             ? pathname === "/app" || pathname === "/"
             : pathname.startsWith(item.href);
 
-        const isPending = pendingHref === item.href;
-        const isActive = pendingHref ? isPending : isCurrent;
+        const isPending = navigatingTarget === item.href;
+        const isActive = navigatingTarget ? isPending : isCurrent;
         const isLoading = isPending && !isCurrent;
 
         return (
@@ -80,7 +70,7 @@ export function MobileNav({
             key={item.href}
             href={item.href}
             prefetch={true}
-            onClick={() => handleLinkClick(item.href)}
+            onClick={() => startNavigation(item.href)}
             className={cn(
               "relative flex flex-col items-center justify-center flex-1 py-1 gap-1 transition-all select-none active:scale-90 touch-manipulation",
               isActive

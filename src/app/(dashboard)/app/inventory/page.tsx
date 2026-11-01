@@ -23,6 +23,7 @@ export default async function InventoryPage() {
         location: true,
       },
       orderBy: { updatedAt: "desc" },
+      take: 100,
     }),
     prisma.stockMovement.findMany({
       where: { shopId: defaultShopId },

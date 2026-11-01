@@ -10,6 +10,7 @@ export default async function CustomersPage() {
   const rawCustomers = await prisma.customer.findMany({
     where: { shopId: defaultShopId },
     orderBy: { createdAt: "desc" },
+    take: 100,
   });
 
   const customers: SerializedCustomer[] = rawCustomers.map((c: any) => ({
