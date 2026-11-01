@@ -14,11 +14,11 @@ export default async function DashboardPage() {
   const [
     shop,
     activeCashSession,
-    salesToday,
+    salesTodayAgg,
     recentSales,
     serviceJobs,
-    customersWithDue,
-    expensesToday,
+    customersDueAgg,
+    expensesTodayAgg,
     products,
     initialAnalytics,
   ] = await Promise.all([
@@ -30,9 +30,10 @@ export default async function DashboardPage() {
       where: { shopId: defaultShopId, status: "OPEN" },
       include: { cashier: { select: { fullName: true } } },
     }),
-    prisma.sale.findMany({
+    prisma.sale.aggregate({
       where: { shopId: defaultShopId, createdAt: { gte: todayStart } },
-      select: { totalAmount: true },
+      _sum: { totalAmount: true },
+      _count: true,
     }),
     prisma.sale.findMany({
       where: { shopId: defaultShopId },
@@ -40,7 +41,7 @@ export default async function DashboardPage() {
       take: 5,
       include: {
         customer: { select: { name: true, phone: true } },
-        items: true,
+        items: { select: { id: true } },
       },
     }),
     prisma.serviceJob.findMany({
@@ -55,13 +56,14 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       take: 6,
     }),
-    prisma.customer.findMany({
+    prisma.customer.aggregate({
       where: { shopId: defaultShopId, totalDue: { gt: 0 } },
-      select: { id: true, totalDue: true },
+      _sum: { totalDue: true },
+      _count: true,
     }),
-    prisma.expense.findMany({
+    prisma.expense.aggregate({
       where: { shopId: defaultShopId, expenseDate: { gte: todayStart } },
-      select: { amount: true },
+      _sum: { amount: true },
     }),
     prisma.product.findMany({
       where: { shopId: defaultShopId, isActive: true },
@@ -74,9 +76,9 @@ export default async function DashboardPage() {
     getPerformanceAnalytics({ shopId: defaultShopId, period: "today" }),
   ]);
 
-  const todaySalesTotal = salesToday.reduce((sum, s) => sum + Number(s.totalAmount), 0);
-  const totalCustomerDues = customersWithDue.reduce((sum, c) => sum + Number(c.totalDue), 0);
-  const todayExpenseTotal = expensesToday.reduce((sum, e) => sum + Number(e.amount), 0);
+  const todaySalesTotal = Number(salesTodayAgg._sum.totalAmount || 0);
+  const totalCustomerDues = Number(customersDueAgg._sum.totalDue || 0);
+  const todayExpenseTotal = Number(expensesTodayAgg._sum.amount || 0);
 
   const metricData: DashboardMetricData = {
     shopName: shop?.name || "রাশেদ টেলিকম",
@@ -91,10 +93,10 @@ export default async function DashboardPage() {
         }
       : null,
     todaySalesTotal,
-    todaySalesCount: salesToday.length,
+    todaySalesCount: salesTodayAgg._count || 0,
     activeRepairCount: serviceJobs.length,
     totalCustomerDues,
-    dueCustomersCount: customersWithDue.length,
+    dueCustomersCount: customersDueAgg._count || 0,
     todayExpenseTotal,
     activeServiceJobs: serviceJobs.map((j) => ({
       id: j.id,

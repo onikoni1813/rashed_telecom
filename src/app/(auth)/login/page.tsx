@@ -128,11 +128,8 @@ export default function LoginPage() {
         return;
       }
 
-      setSuccessMessage("লগইন সফল হয়েছে! ড্যাশবোর্ডে নিয়ে যাওয়া হচ্ছে...");
-      setTimeout(() => {
-        router.push("/app");
-        router.refresh();
-      }, 500);
+      setSuccessMessage("লগইন সফল হয়েছে! টার্মিনাল আনলক হচ্ছে...");
+      window.location.replace("/app");
     } catch (err: any) {
       setErrorMessage(err.message || "লগইন ব্যর্থ হয়েছে।");
       setLoading(false);
@@ -161,10 +158,7 @@ export default function LoginPage() {
       const result = await authenticateBiometric(selectedStaff?.userId);
       if (result.success) {
         setSuccessMessage("ফিঙ্গারপ্রিন্ট যাচাইকরণ সফল! টার্মিনাল আনলক হচ্ছে...");
-        setTimeout(() => {
-          router.push("/app");
-          router.refresh();
-        }, 500);
+        window.location.replace("/app");
       }
     } catch (err: any) {
       const msg = err.message || "";
