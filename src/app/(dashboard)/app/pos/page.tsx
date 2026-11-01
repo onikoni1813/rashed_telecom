@@ -27,7 +27,7 @@ async function PosDataLoader() {
   const defaultCashierId = "00000000-0000-0000-0000-000000000001";
 
   // Parallel fetch location, products, and customers
-  const [fetchedLocation, dbProducts, dbCustomers] = await Promise.all([
+  const [fetchedLocation, dbProducts, dbCustomers, fetchedActiveSession] = await Promise.all([
     prisma.location.findFirst({
       where: { shopId: defaultShopId },
     }),
@@ -63,7 +63,70 @@ async function PosDataLoader() {
       orderBy: { name: "asc" },
       take: 100,
     }),
+    prisma.cashSession.findFirst({
+      where: { shopId: defaultShopId, status: "OPEN" },
+      include: {
+        cashier: { select: { fullName: true } },
+      },
+      orderBy: { openingTime: "desc" },
+    }),
   ]);
+
+  let activeSession = fetchedActiveSession;
+  if (!activeSession) {
+    activeSession = await prisma.cashSession.create({
+      data: {
+        shopId: defaultShopId,
+        cashierId: defaultCashierId,
+        openingCash: 5000,
+        status: "OPEN",
+        notes: "কাউন্টার প্রারম্ভিক ক্যাশ সেশন",
+      },
+      include: {
+        cashier: { select: { fullName: true } },
+      },
+    });
+  }
+
+  // Calculate live cash sales & cash expenses in this session
+  const [cashSalesAgg, cashExpensesAgg] = await Promise.all([
+    prisma.payment.aggregate({
+      where: {
+        shopId: defaultShopId,
+        paymentMethod: "CASH",
+        allocations: {
+          some: {
+            sale: { cashSessionId: activeSession.id },
+          },
+        },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.expense.aggregate({
+      where: {
+        shopId: defaultShopId,
+        paymentMethod: "CASH",
+        expenseDate: { gte: activeSession.openingTime },
+      },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  const openingCash = Number(activeSession.openingCash || 0);
+  const totalCashSales = Number(cashSalesAgg._sum?.amount || 0);
+  const totalCashExpenses = Number(cashExpensesAgg._sum?.amount || 0);
+  const currentCash = openingCash + totalCashSales - totalCashExpenses;
+
+  const initialCashDrawer = {
+    sessionId: activeSession.id,
+    status: (activeSession.status as "OPEN" | "CLOSED"),
+    cashierName: activeSession.cashier?.fullName || "প্রধান ক্যাশিয়ার",
+    openingTime: activeSession.openingTime.toISOString(),
+    openingCash,
+    totalCashSales,
+    totalCashExpenses,
+    currentCash,
+  };
 
   let location = fetchedLocation;
   if (!location) {
@@ -112,6 +175,7 @@ async function PosDataLoader() {
         cashierId={defaultCashierId}
         products={products}
         customers={customers}
+        initialCashDrawer={initialCashDrawer}
       />
     </div>
   );

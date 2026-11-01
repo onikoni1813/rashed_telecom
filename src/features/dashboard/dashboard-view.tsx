@@ -290,7 +290,10 @@ export function DashboardView({
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-semibold shadow-xs">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span>
-                    ক্যাশ রেজিস্টার: {data.activeCashSession?.status === "OPEN" ? "খোলা (৳৫,০০০)" : "বন্ধ"}
+                    ক্যাশ রেজিস্টার:{" "}
+                    {data.activeCashSession?.status === "OPEN"
+                      ? `খোলা (${formatBDT(data.activeCashSession.openingCash)})`
+                      : "বন্ধ"}
                   </span>
                 </div>
 

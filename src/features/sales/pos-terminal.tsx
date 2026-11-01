@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { formatBDT } from "@/lib/i18n";
+import { formatBDT, formatDhakaDate } from "@/lib/i18n";
 import {
   ShoppingCart,
   Search,
@@ -33,10 +33,23 @@ import {
   Coins,
   Check,
   UserPlus,
+  Lock,
+  Unlock,
+  Info,
 } from "lucide-react";
 import { createCustomerAction } from "@/features/customers/customer-actions";
 import { CashMemo, InvoiceData } from "./cash-memo";
 
+export interface CashDrawerData {
+  sessionId: string | null;
+  status: "OPEN" | "CLOSED";
+  cashierName: string;
+  openingTime: string;
+  openingCash: number;
+  totalCashSales: number;
+  totalCashExpenses: number;
+  currentCash: number;
+}
 
 interface ProductItem {
   id: string;
@@ -70,6 +83,7 @@ interface PosTerminalProps {
   cashierId: string;
   products: ProductItem[];
   customers: CustomerItem[];
+  initialCashDrawer?: CashDrawerData;
 }
 
 export function PosTerminal({
@@ -78,7 +92,28 @@ export function PosTerminal({
   cashierId,
   products,
   customers,
+  initialCashDrawer,
 }: PosTerminalProps) {
+  const [cashDrawer, setCashDrawer] = useState<CashDrawerData>(
+    initialCashDrawer || {
+      sessionId: null,
+      status: "OPEN",
+      cashierName: "প্রধান ক্যাশিয়ার",
+      openingTime: new Date().toISOString(),
+      openingCash: 5000,
+      totalCashSales: 0,
+      totalCashExpenses: 0,
+      currentCash: 5000,
+    }
+  );
+
+  const [isCashDrawerModalOpen, setIsCashDrawerModalOpen] = useState(false);
+  const [actualClosingCash, setActualClosingCash] = useState<string>("");
+  const [newOpeningCash, setNewOpeningCash] = useState<string>("5000");
+  const [drawerNotes, setDrawerNotes] = useState<string>("");
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerMessage, setDrawerMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   const [customerList, setCustomerList] = useState<CustomerItem[]>(customers);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
@@ -423,6 +458,19 @@ export function PosTerminal({
         changeDue: changeDue,
       });
 
+      // Dynamically increment cash drawer if payment includes CASH
+      const addedCash = payments
+        .filter((p) => p.method === "CASH")
+        .reduce((sum, p) => sum + Number(p.amount), 0);
+
+      if (addedCash > 0) {
+        setCashDrawer((prev) => ({
+          ...prev,
+          currentCash: prev.currentCash + addedCash,
+          totalCashSales: prev.totalCashSales + addedCash,
+        }));
+      }
+
       clearCart();
       setMobileTab("CATALOG");
     } catch (err: any) {
@@ -433,6 +481,114 @@ export function PosTerminal({
   };
 
   handleCheckoutRef.current = handleCheckout;
+
+  const handleCloseCashSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cashDrawer.sessionId) return;
+    const actual = parseFloat(actualClosingCash);
+    if (isNaN(actual) || actual < 0) {
+      setDrawerMessage({ type: "error", text: "অনুগ্রহ করে ড্রয়ারের আসল নগদ টাকা গণনা করে সংখ্যায় লিখুন।" });
+      return;
+    }
+
+    setDrawerLoading(true);
+    setDrawerMessage(null);
+    try {
+      const res = await fetch("/api/v1/cash-sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-test-user-id": cashierId,
+        },
+        body: JSON.stringify({
+          action: "CLOSE",
+          shopId,
+          sessionId: cashDrawer.sessionId,
+          closingCashActual: actual,
+          notes: drawerNotes || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error?.message || "ক্যাশ সেশন বন্ধ করতে ব্যর্থ হয়েছে।");
+      }
+
+      const disc = Number(data.data?.discrepancy || 0);
+      const discText =
+        disc === 0
+          ? "ড্রয়ারের ক্যাশ সিস্টেমে নিখুঁতভাবে মিলেছে (কোনো গরমিল নেই)!"
+          : disc < 0
+          ? `ঘাটতি (Shortage): ${formatBDT(Math.abs(disc))} ড্রয়ারে কম পাওয়া গেছে।`
+          : `উদ্বৃত্ত (Overage): +${formatBDT(disc)} ড্রয়ারে বেশি রয়েছে।`;
+
+      setCashDrawer((prev) => ({
+        ...prev,
+        status: "CLOSED",
+        currentCash: actual,
+      }));
+
+      setDrawerMessage({
+        type: "success",
+        text: `কাউন্টার সেশন সফলভাবে ক্লোজ করা হয়েছে। ${discText}`,
+      });
+    } catch (err: any) {
+      setDrawerMessage({ type: "error", text: err.message || "ত্রুটি ঘটেছে।" });
+    } finally {
+      setDrawerLoading(false);
+    }
+  };
+
+  const handleOpenCashSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const opening = parseFloat(newOpeningCash);
+    if (isNaN(opening) || opening < 0) {
+      setDrawerMessage({ type: "error", text: "সঠিক প্রারম্ভিক ক্যাশ পরিমাণ লিখুন।" });
+      return;
+    }
+
+    setDrawerLoading(true);
+    setDrawerMessage(null);
+    try {
+      const res = await fetch("/api/v1/cash-sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-test-user-id": cashierId,
+        },
+        body: JSON.stringify({
+          action: "OPEN",
+          shopId,
+          openingCash: opening,
+          notes: drawerNotes || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error?.message || "নতুন ক্যাশ সেশন শুরু করতে ব্যর্থ হয়েছে।");
+      }
+
+      setCashDrawer({
+        sessionId: data.data.id,
+        status: "OPEN",
+        cashierName: "প্রধান ক্যাশিয়ার",
+        openingTime: data.data.openingTime || new Date().toISOString(),
+        openingCash: opening,
+        totalCashSales: 0,
+        totalCashExpenses: 0,
+        currentCash: opening,
+      });
+
+      setDrawerMessage({
+        type: "success",
+        text: `নতুন কাউন্টার সেশন চালু হয়েছে (${formatBDT(opening)})।`,
+      });
+      setActualClosingCash("");
+    } catch (err: any) {
+      setDrawerMessage({ type: "error", text: err.message || "ত্রুটি ঘটেছে।" });
+    } finally {
+      setDrawerLoading(false);
+    }
+  };
 
   // Helper for Product Icon based on category or name
   const getProductIcon = (p: ProductItem) => {
@@ -499,10 +655,29 @@ export function PosTerminal({
 
           {/* Quick Hotkeys Pill Dock */}
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-background/80 border border-border font-semibold shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>ক্যাশ ড্রয়ার: ৳৫,০০০</span>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setDrawerMessage(null);
+                setActualClosingCash("");
+                setIsCashDrawerModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-background/90 hover:bg-card border border-border/80 hover:border-primary/50 font-semibold shadow-xs transition-all active:scale-95 cursor-pointer group"
+              title="ক্যাশ ড্রয়ার হিসাব বিবরণী ও কাউন্টার সেশন ক্লিক করে দেখুন"
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  cashDrawer.status === "OPEN" ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                }`}
+              />
+              <span className="group-hover:text-primary transition-colors flex items-center gap-1.5">
+                <span>ক্যাশ ড্রয়ার:</span>
+                <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  {formatBDT(cashDrawer.currentCash)}
+                </span>
+              </span>
+              <Coins className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
 
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/60 border border-border/80 font-mono text-[11px] text-muted-foreground">
               <span className="bg-card px-1.5 py-0.5 rounded-md border font-bold text-foreground">F1</span>
@@ -1378,6 +1553,265 @@ export function PosTerminal({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CASH DRAWER BREAKDOWN & SESSION RECONCILIATION MODAL */}
+      {isCashDrawerModalOpen && (
+        <div className="print:hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-card w-full max-w-lg rounded-3xl border border-border shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-border/80 flex items-center justify-between bg-muted/30">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-foreground text-sm flex items-center gap-2">
+                    <span>ক্যাশ ড্রয়ার হিসাব ও কাউন্টার সেশন</span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        cashDrawer.status === "OPEN"
+                          ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/25"
+                          : "bg-rose-500/10 text-rose-600 border border-rose-500/25"
+                      }`}
+                    >
+                      {cashDrawer.status === "OPEN" ? "🟢 সেশন সক্রিয় (খোলা)" : "🔴 সেশন বন্ধ"}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    ক্যাশিয়ার: {cashDrawer.cashierName} • শুরুর সময়: {formatDhakaDate(cashDrawer.openingTime)}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCashDrawerModalOpen(false)}
+                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 overflow-y-auto space-y-4 text-xs">
+              {drawerMessage && (
+                <div
+                  className={`p-3 rounded-2xl border text-xs font-semibold flex items-center gap-2 ${
+                    drawerMessage.type === "success"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                      : "bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300"
+                  }`}
+                >
+                  {drawerMessage.type === "success" ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                  )}
+                  <span>{drawerMessage.text}</span>
+                </div>
+              )}
+
+              {/* Formula Metrics Grid */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/70 space-y-1">
+                  <div className="text-[11px] font-semibold text-muted-foreground">১. প্রারম্ভিক ক্যাশ (Float)</div>
+                  <div className="text-base font-black text-foreground font-mono">
+                    {formatBDT(cashDrawer.openingCash)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/80">সকালে ড্রয়ার চালুর জমা</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-1">
+                  <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
+                    <span>২. (+) নগদ বিক্রয় (Inflow)</span>
+                  </div>
+                  <div className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                    +{formatBDT(cashDrawer.totalCashSales)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/80">POS নগদ আদায়</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-1">
+                  <div className="text-[11px] font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-1">
+                    <span>৩. (-) নগদ খরচ (Outflow)</span>
+                  </div>
+                  <div className="text-base font-black text-rose-600 dark:text-rose-400 font-mono">
+                    -{formatBDT(cashDrawer.totalCashExpenses)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/80">ড্রয়ার থেকে দোকান খরচ</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-primary/10 border-2 border-primary/30 space-y-1">
+                  <div className="text-[11px] font-bold text-primary flex items-center gap-1">
+                    <span>৪. (=) ক্যাশ ড্রয়ার ব্যালেন্স</span>
+                  </div>
+                  <div className="text-lg font-black text-primary font-mono">
+                    {formatBDT(cashDrawer.currentCash)}
+                  </div>
+                  <div className="text-[10px] text-primary/80 font-medium">ড্রয়ারে বর্তমান মোট টাকা</div>
+                </div>
+              </div>
+
+              {/* Status Section */}
+              {cashDrawer.status === "OPEN" ? (
+                <div className="border border-border rounded-2xl p-4 bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground flex items-center gap-1.5 text-xs">
+                      <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span>কাউন্টার ক্লোজিং ও ড্রয়ার নগদ মেলানো</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">দিন শেষে বা শিফট পরিবর্তন</span>
+                  </div>
+
+                  <form onSubmit={handleCloseCashSession} className="space-y-3 pt-1">
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1">
+                        ড্রয়ারের আসল নগদ গণনা (Actual Cash Count) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-muted-foreground font-mono">
+                          ৳
+                        </span>
+                        <input
+                          type="number"
+                          step="any"
+                          required
+                          placeholder={String(cashDrawer.currentCash)}
+                          value={actualClosingCash}
+                          onChange={(e) => setActualClosingCash(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 text-xs bg-background rounded-xl border border-border text-foreground font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Live Discrepancy Preview */}
+                    {actualClosingCash !== "" && !isNaN(parseFloat(actualClosingCash)) && (
+                      (() => {
+                        const actual = parseFloat(actualClosingCash);
+                        const disc = actual - cashDrawer.currentCash;
+                        if (disc === 0) {
+                          return (
+                            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-2">
+                              <Check className="w-4 h-4 text-emerald-600" />
+                              <span>ড্রয়ারের ক্যাশ সিস্টেমে নিখুঁতভাবে মিলেছে (কোনো গরমিল নেই)।</span>
+                            </div>
+                          );
+                        } else if (disc < 0) {
+                          return (
+                            <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 font-bold flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 text-rose-600" />
+                              <span>
+                                ক্যাশ ঘাটতি (Shortage): {formatBDT(Math.abs(disc))} ড্রয়ারে কম রয়েছে!
+                              </span>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-700 dark:text-blue-300 font-bold flex items-center gap-2">
+                              <Info className="w-4 h-4 text-blue-600" />
+                              <span>
+                                ক্যাশ উদ্বৃত্ত (Overage): +{formatBDT(disc)} ড্রয়ারে বেশি রয়েছে।
+                              </span>
+                            </div>
+                          );
+                        }
+                      })()
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1">
+                        মন্তব্য / নোট (ঐচ্ছিক)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: হিসাব মিলিয়ে ক্যাশ জমা দেওয়া হলো..."
+                        value={drawerNotes}
+                        onChange={(e) => setDrawerNotes(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-background rounded-xl border border-border text-foreground"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={drawerLoading || actualClosingCash === ""}
+                      className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>{drawerLoading ? "ক্লোজিং প্রক্রিয়াধীন..." : "ক্যাশ হিসাব মিলিয়ে সেশন ক্লোজ করুন"}</span>
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="border border-border rounded-2xl p-4 bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground flex items-center gap-1.5 text-xs">
+                      <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>নতুন কাউন্টার সেশন চালু করুন</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">সকালের নতুন শুরু</span>
+                  </div>
+
+                  <form onSubmit={handleOpenCashSession} className="space-y-3 pt-1">
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1">
+                        প্রারম্ভিক ক্যাশ / ওপেনিং ফ্লোট (৳) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-muted-foreground font-mono">
+                          ৳
+                        </span>
+                        <input
+                          type="number"
+                          step="any"
+                          required
+                          value={newOpeningCash}
+                          onChange={(e) => setNewOpeningCash(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 text-xs bg-background rounded-xl border border-border text-foreground font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1">
+                        নোট (ঐচ্ছিক)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="সেশন শুরুর নোট..."
+                        value={drawerNotes}
+                        onChange={(e) => setDrawerNotes(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-background rounded-xl border border-border text-foreground"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={drawerLoading}
+                      className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Unlock className="w-3.5 h-3.5" />
+                      <span>{drawerLoading ? "সেশন খোলা হচ্ছে..." : "নতুন ক্যাশ সেশন শুরু করুন"}</span>
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-border/80 flex items-center justify-between bg-muted/20">
+              <span className="text-[11px] text-muted-foreground">
+                স্বয়ংক্রিয় রিয়েলটাইম ক্যাশ ক্যালকুলেশন সক্রিয়
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsCashDrawerModalOpen(false)}
+                className="px-4 py-1.5 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted cursor-pointer"
+              >
+                বন্ধ করুন
+              </button>
+            </div>
           </div>
         </div>
       )}

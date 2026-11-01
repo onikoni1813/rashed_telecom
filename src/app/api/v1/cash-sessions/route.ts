@@ -124,12 +124,39 @@ export async function POST(req: Request) {
         throw new ValidationError("Cash session is already closed.");
       }
 
-      // Calculate system cash = opening cash + cash sales
-      const cashSalesTotal = session.sales.reduce(
+      // Calculate system cash = opening cash + cash sales - cash expenses
+      const [cashExpensesAgg, cashPaymentsAgg] = await Promise.all([
+        prisma.expense.aggregate({
+          where: {
+            shopId: parsed.data.shopId,
+            paymentMethod: "CASH",
+            expenseDate: { gte: session.openingTime },
+          },
+          _sum: { amount: true },
+        }),
+        prisma.payment.aggregate({
+          where: {
+            shopId: parsed.data.shopId,
+            paymentMethod: "CASH",
+            allocations: {
+              some: {
+                sale: { cashSessionId: session.id },
+              },
+            },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+      const directSalesCash = session.sales.reduce(
         (sum, s) => sum + Number(s.paidAmount),
         0
       );
-      const systemCash = Number(session.openingCash) + cashSalesTotal;
+      const allocatedCash = Number(cashPaymentsAgg._sum.amount || 0);
+      const cashSalesTotal = Math.max(directSalesCash, allocatedCash);
+      const cashExpensesTotal = Number(cashExpensesAgg._sum.amount || 0);
+
+      const systemCash = Number(session.openingCash) + cashSalesTotal - cashExpensesTotal;
       const actualCash = parsed.data.closingCashActual;
       const discrepancy = actualCash - systemCash;
 
