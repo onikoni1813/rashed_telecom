@@ -200,9 +200,14 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const { navigatingTarget, startNavigation } = useNavigation();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Close when pathname changes
+  const prevPathnameRef = useRef(pathname);
+
+  // Close only when pathname actually changes (navigation happened)
   useEffect(() => {
-    onClose();
+    if (prevPathnameRef.current !== pathname) {
+      prevPathnameRef.current = pathname;
+      onClose();
+    }
   }, [pathname, onClose]);
 
   // Lock body scroll when open

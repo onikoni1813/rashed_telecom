@@ -140,3 +140,4 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 export function useNavigation() {
   return useContext(NavigationContext);
 }
+

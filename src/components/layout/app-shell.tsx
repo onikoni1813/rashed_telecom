@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
@@ -27,6 +27,9 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { isNavigating } = useNavigation();
 
+  const handleOpenDrawer = useCallback(() => setIsDrawerOpen(true), []);
+  const handleCloseDrawer = useCallback(() => setIsDrawerOpen(false), []);
+
   return (
     <div className="min-h-screen flex bg-background text-foreground print:bg-white print:text-black print:min-h-0 print:block">
       <NavigationProgress />
@@ -40,7 +43,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       <div className="print:hidden">
         <MobileDrawer
           isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
+          onClose={handleCloseDrawer}
           locale={locale}
         />
       </div>
@@ -51,7 +54,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
           <Topbar
             locale={locale}
             onLocaleChange={setLocale}
-            onOpenDrawer={() => setIsDrawerOpen(true)}
+            onOpenDrawer={handleOpenDrawer}
           />
         </div>
         <main
@@ -68,7 +71,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       <div className="print:hidden">
         <MobileNav
           locale={locale}
-          onOpenDrawer={() => setIsDrawerOpen(true)}
+          onOpenDrawer={handleOpenDrawer}
           isDrawerOpen={isDrawerOpen}
         />
       </div>
