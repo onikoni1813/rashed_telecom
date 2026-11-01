@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@prisma/extension-accelerate": "^3.0.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
     "class-variance-authority": "^0.7.1",
