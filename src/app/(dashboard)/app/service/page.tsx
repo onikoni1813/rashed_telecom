@@ -10,11 +10,62 @@ export default async function ServicePage() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
   const defaultUserId = "00000000-0000-0000-0000-000000000001";
 
-  // Location
-  let location = await prisma.location.findFirst({
-    where: { shopId: defaultShopId },
-  });
+  // Parallel fetch location, service jobs, customers, technicians, and spare parts
+  const [fetchedLocation, rawJobs, dbCustomers, dbTechnicians, rawSpareParts] = await Promise.all([
+    prisma.location.findFirst({
+      where: { shopId: defaultShopId },
+    }),
+    prisma.serviceJob.findMany({
+      where: { shopId: defaultShopId },
+      include: {
+        customer: true,
+        assignedTechnician: {
+          select: { id: true, fullName: true, email: true },
+        },
+        diagnostics: {
+          orderBy: { createdAt: "desc" },
+        },
+        parts: {
+          include: {
+            product: {
+              select: { name: true, sku: true },
+            },
+          },
+        },
+        warranties: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.customer.findMany({
+      where: { shopId: defaultShopId },
+      select: { id: true, name: true, phone: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.user.findMany({
+      where: {
+        memberships: {
+          some: {
+            shopId: defaultShopId,
+            role: { name: "TECHNICIAN" },
+          },
+        },
+      },
+      select: { id: true, fullName: true, email: true },
+    }),
+    prisma.product.findMany({
+      where: {
+        shopId: defaultShopId,
+        isActive: true,
+        category: { type: "PART" },
+      },
+      include: {
+        stockBalances: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
+  let location = fetchedLocation;
   if (!location) {
     location = await prisma.location.create({
       data: {
@@ -24,29 +75,6 @@ export default async function ServicePage() {
       },
     });
   }
-
-  // Fetch Service Jobs
-  const rawJobs = await prisma.serviceJob.findMany({
-    where: { shopId: defaultShopId },
-    include: {
-      customer: true,
-      assignedTechnician: {
-        select: { id: true, fullName: true, email: true },
-      },
-      diagnostics: {
-        orderBy: { createdAt: "desc" },
-      },
-      parts: {
-        include: {
-          product: {
-            select: { name: true, sku: true },
-          },
-        },
-      },
-      warranties: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
 
   // Calculate Aggregates
   let activeRepairsCount = 0;
@@ -116,48 +144,16 @@ export default async function ServicePage() {
     };
   });
 
-  // Fetch Customers
-  const dbCustomers = await prisma.customer.findMany({
-    where: { shopId: defaultShopId },
-    select: { id: true, name: true, phone: true },
-    orderBy: { name: "asc" },
+  const spareParts = rawSpareParts.map((sp) => {
+    const locBalance = sp.stockBalances.find((sb) => sb.locationId === location.id) || sp.stockBalances[0];
+    return {
+      id: sp.id,
+      name: sp.name,
+      sku: sp.sku,
+      sellingPrice: Number(sp.sellingPrice),
+      quantityOnHand: locBalance ? Number(locBalance.quantityOnHand) : 0,
+    };
   });
-
-  // Fetch Technicians
-  const dbTechnicians = await prisma.user.findMany({
-    where: {
-      memberships: {
-        some: {
-          shopId: defaultShopId,
-          role: { name: "TECHNICIAN" },
-        },
-      },
-    },
-    select: { id: true, fullName: true, email: true },
-  });
-
-  // Fetch Spare Parts from Inventory
-  const dbSpareParts = await prisma.product.findMany({
-    where: {
-      shopId: defaultShopId,
-      isActive: true,
-      category: { type: "PART" },
-    },
-    include: {
-      stockBalances: {
-        where: { locationId: location.id },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
-
-  const spareParts = dbSpareParts.map((sp) => ({
-    id: sp.id,
-    name: sp.name,
-    sku: sp.sku,
-    sellingPrice: Number(sp.sellingPrice),
-    quantityOnHand: sp.stockBalances[0] ? Number(sp.stockBalances[0].quantityOnHand) : 0,
-  }));
 
   return (
     <div className="space-y-6">

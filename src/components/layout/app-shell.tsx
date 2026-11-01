@@ -4,6 +4,7 @@ import React from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
+import { NavigationProgress } from "./navigation-progress";
 import { Locale } from "@/types";
 
 interface AppShellProps {
@@ -15,6 +16,8 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen flex bg-background text-foreground print:bg-white print:text-black print:min-h-0 print:block">
+      <NavigationProgress />
+
       {/* Desktop Sidebar */}
       <div className="print:hidden">
         <Sidebar locale={locale} />

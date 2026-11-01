@@ -8,11 +8,45 @@ export default async function PosPage() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
   const defaultCashierId = "00000000-0000-0000-0000-000000000001";
 
-  // Fetch shop location
-  let location = await prisma.location.findFirst({
-    where: { shopId: defaultShopId },
-  });
+  // Parallel fetch location, products, and customers
+  const [fetchedLocation, dbProducts, dbCustomers] = await Promise.all([
+    prisma.location.findFirst({
+      where: { shopId: defaultShopId },
+    }),
+    prisma.product.findMany({
+      where: {
+        shopId: defaultShopId,
+        isActive: true,
+      },
+      include: {
+        category: {
+          select: { name: true },
+        },
+        stockBalances: {
+          select: {
+            quantityOnHand: true,
+            locationId: true,
+          },
+        },
+        serialNumbers: {
+          where: { status: "IN_STOCK" },
+          select: {
+            id: true,
+            imei1: true,
+            imei2: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.customer.findMany({
+      where: { shopId: defaultShopId },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
+  let location = fetchedLocation;
   if (!location) {
     location = await prisma.location.create({
       data: {
@@ -22,35 +56,6 @@ export default async function PosPage() {
       },
     });
   }
-
-  // Fetch active in-stock products with category & serials
-  const dbProducts = await prisma.product.findMany({
-    where: {
-      shopId: defaultShopId,
-      isActive: true,
-    },
-    include: {
-      category: {
-        select: { name: true },
-      },
-      stockBalances: {
-        select: {
-          quantityOnHand: true,
-          locationId: true,
-        },
-      },
-      serialNumbers: {
-        where: { status: "IN_STOCK" },
-        select: {
-          id: true,
-          imei1: true,
-          imei2: true,
-          status: true,
-        },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
 
   // Serialize Decimal types for client component
   const products = dbProducts.map((p) => ({
@@ -72,12 +77,6 @@ export default async function PosPage() {
       status: s.status,
     })),
   }));
-
-  // Fetch registered customers
-  const dbCustomers = await prisma.customer.findMany({
-    where: { shopId: defaultShopId },
-    orderBy: { name: "asc" },
-  });
 
   const customers = dbCustomers.map((c) => ({
     id: c.id,

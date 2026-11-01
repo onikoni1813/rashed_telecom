@@ -49,6 +49,7 @@ export function MobileNav({ locale = "bn" }: MobileNavProps) {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={true}
             className={cn(
               "relative flex flex-col items-center justify-center flex-1 py-1 gap-1 transition-all select-none active:scale-90",
               isActive ? "text-primary font-black" : "text-muted-foreground hover:text-foreground"

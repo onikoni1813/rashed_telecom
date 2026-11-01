@@ -12,36 +12,35 @@ export const dynamic = "force-dynamic";
 export default async function InventoryPage() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
-  // 1. Fetch stock balances with products and location
-  const rawBalances = await prisma.stockBalance.findMany({
-    where: { shopId: defaultShopId },
-    include: {
-      product: {
-        include: { category: true },
+  // Parallel fetch stock balances, movements, and locations
+  const [rawBalances, rawMovements, fetchedLocations] = await Promise.all([
+    prisma.stockBalance.findMany({
+      where: { shopId: defaultShopId },
+      include: {
+        product: {
+          include: { category: true },
+        },
+        location: true,
       },
-      location: true,
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.stockMovement.findMany({
+      where: { shopId: defaultShopId },
+      include: {
+        product: true,
+        location: true,
+        actor: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    prisma.location.findMany({
+      where: { shopId: defaultShopId },
+      orderBy: { isDefault: "desc" },
+    }),
+  ]);
 
-  // 2. Fetch historical movements
-  const rawMovements = await prisma.stockMovement.findMany({
-    where: { shopId: defaultShopId },
-    include: {
-      product: true,
-      location: true,
-      actor: true,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
-
-  // 3. Fetch locations
-  let rawLocations = await prisma.location.findMany({
-    where: { shopId: defaultShopId },
-    orderBy: { isDefault: "desc" },
-  });
-
+  let rawLocations = fetchedLocations;
   if (rawLocations.length === 0) {
     const defaultLoc = await prisma.location.create({
       data: {

@@ -10,10 +10,28 @@ export const dynamic = "force-dynamic";
 export default async function SalesPage() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
-  let location = await prisma.location.findFirst({
-    where: { shopId: defaultShopId },
-  });
+  const [fetchedLocation, rawSales] = await Promise.all([
+    prisma.location.findFirst({
+      where: { shopId: defaultShopId },
+    }),
+    prisma.sale.findMany({
+      where: { shopId: defaultShopId },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            product: true,
+            serials: {
+              include: { serialNumber: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
+  let location = fetchedLocation;
   if (!location) {
     location = await prisma.location.create({
       data: {
@@ -23,22 +41,6 @@ export default async function SalesPage() {
       },
     });
   }
-
-  const rawSales = await prisma.sale.findMany({
-    where: { shopId: defaultShopId },
-    include: {
-      customer: true,
-      items: {
-        include: {
-          product: true,
-          serials: {
-            include: { serialNumber: true },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
 
   // Calculate Aggregates
   let totalRevenue = 0;

@@ -13,43 +13,40 @@ export const dynamic = "force-dynamic";
 export default async function PurchasesPage() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
-  // 1. Fetch Purchase Orders
-  const rawOrders = await prisma.purchaseOrder.findMany({
-    where: { shopId: defaultShopId },
-    include: {
-      supplier: true,
-      items: {
-        include: { product: true },
+  // Parallel fetch purchase orders, suppliers, products, and locations
+  const [rawOrders, rawSuppliers, rawProducts, fetchedLocations] = await Promise.all([
+    prisma.purchaseOrder.findMany({
+      where: { shopId: defaultShopId },
+      include: {
+        supplier: true,
+        items: {
+          include: { product: true },
+        },
+        goodsReceipts: true,
       },
-      goodsReceipts: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.supplier.findMany({
+      where: { shopId: defaultShopId },
+      orderBy: { name: "asc" },
+    }),
+    prisma.product.findMany({
+      where: { shopId: defaultShopId, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        costPrice: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.location.findMany({
+      where: { shopId: defaultShopId },
+      orderBy: { isDefault: "desc" },
+    }),
+  ]);
 
-  // 2. Fetch Suppliers
-  const rawSuppliers = await prisma.supplier.findMany({
-    where: { shopId: defaultShopId },
-    orderBy: { name: "asc" },
-  });
-
-  // 3. Fetch Active Products for PO item builder
-  const rawProducts = await prisma.product.findMany({
-    where: { shopId: defaultShopId, isActive: true },
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      costPrice: true,
-    },
-    orderBy: { name: "asc" },
-  });
-
-  // 4. Fetch Locations
-  let rawLocations = await prisma.location.findMany({
-    where: { shopId: defaultShopId },
-    orderBy: { isDefault: "desc" },
-  });
-
+  let rawLocations = fetchedLocations;
   if (rawLocations.length === 0) {
     const defaultLoc = await prisma.location.create({
       data: {

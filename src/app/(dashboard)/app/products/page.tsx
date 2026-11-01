@@ -7,30 +7,29 @@ export const dynamic = "force-dynamic";
 export default async function ProductsPage() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
-  // 1. Fetch products with relations
-  const rawProducts = await prisma.product.findMany({
-    where: { shopId: defaultShopId },
-    include: {
-      category: true,
-      stockBalances: {
-        include: { location: true },
+  // Parallel fetch products, categories, locations
+  const [rawProducts, rawCategories, fetchedLocations] = await Promise.all([
+    prisma.product.findMany({
+      where: { shopId: defaultShopId },
+      include: {
+        category: true,
+        stockBalances: {
+          include: { location: true },
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.category.findMany({
+      where: { shopId: defaultShopId },
+      orderBy: { name: "asc" },
+    }),
+    prisma.location.findMany({
+      where: { shopId: defaultShopId },
+      orderBy: { isDefault: "desc" },
+    }),
+  ]);
 
-  // 2. Fetch categories
-  const rawCategories = await prisma.category.findMany({
-    where: { shopId: defaultShopId },
-    orderBy: { name: "asc" },
-  });
-
-  // 3. Fetch locations
-  let rawLocations = await prisma.location.findMany({
-    where: { shopId: defaultShopId },
-    orderBy: { isDefault: "desc" },
-  });
-
+  let rawLocations = fetchedLocations;
   if (rawLocations.length === 0) {
     const newLoc = await prisma.location.create({
       data: {
