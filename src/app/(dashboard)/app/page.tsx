@@ -47,7 +47,21 @@ export default async function DashboardPage() {
     prisma.serviceJob.findMany({
       where: {
         shopId: defaultShopId,
-        status: { in: ["INTAKE", "DIAGNOSING", "WAITING_APPROVAL", "PARTS_PENDING", "REPAIRING", "TESTING", "READY"] },
+        status: {
+          in: [
+            "INTAKE",
+            "DIAGNOSING",
+            "ESTIMATE_PENDING",
+            "ESTIMATE_APPROVED",
+            "IN_REPAIR",
+            "READY_FOR_DELIVERY",
+            "WAITING_APPROVAL",
+            "PARTS_PENDING",
+            "REPAIRING",
+            "TESTING",
+            "READY",
+          ],
+        },
       },
       include: {
         customer: { select: { name: true, phone: true } },
@@ -76,9 +90,9 @@ export default async function DashboardPage() {
     getPerformanceAnalytics({ shopId: defaultShopId, period: "today" }),
   ]);
 
-  const todaySalesTotal = Number(salesTodayAgg._sum.totalAmount || 0);
-  const totalCustomerDues = Number(customersDueAgg._sum.totalDue || 0);
-  const todayExpenseTotal = Number(expensesTodayAgg._sum.amount || 0);
+  const todaySalesTotal = Number(salesTodayAgg._sum?.totalAmount || 0);
+  const totalCustomerDues = Number(customersDueAgg._sum?.totalDue || 0);
+  const todayExpenseTotal = Number(expensesTodayAgg._sum?.amount || 0);
 
   const metricData: DashboardMetricData = {
     shopName: shop?.name || "রাশেদ টেলিকম",

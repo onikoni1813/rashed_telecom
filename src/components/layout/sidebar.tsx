@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -24,6 +24,7 @@ import {
   SlidersHorizontal,
   LucideIcon,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Locale } from "@/types";
@@ -63,6 +64,18 @@ interface SidebarProps {
 export function Sidebar({ locale = "bn" }: SidebarProps) {
   const pathname = usePathname();
   const dict = getDictionary(locale);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  // Clear pending state when route updates
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  const handleItemClick = (href: string) => {
+    if (href !== pathname) {
+      setPendingHref(href);
+    }
+  };
 
   return (
     <aside className="hidden lg:flex w-64 flex-col border-r border-border/80 bg-card/85 backdrop-blur-2xl h-screen sticky top-0 select-none shadow-sm z-30">
@@ -98,18 +111,23 @@ export function Sidebar({ locale = "bn" }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1 scrollbar-thin">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive =
+          const isCurrent =
             item.href === "/app"
               ? pathname === "/app" || pathname === "/"
               : pathname.startsWith(item.href);
+
+          const isPending = pendingHref === item.href;
+          const isActive = pendingHref ? isPending : isCurrent;
+          const isLoading = isPending && !isCurrent;
 
           return (
             <Link
               key={item.href}
               href={item.href}
               prefetch={true}
+              onClick={() => handleItemClick(item.href)}
               className={cn(
-                "relative group flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200",
+                "relative group flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 active:scale-[0.98]",
                 isActive
                   ? "bg-gradient-to-r from-primary to-indigo-600 text-white shadow-md shadow-primary/25 font-bold scale-[1.02] border border-white/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:translate-x-0.5"
@@ -129,7 +147,11 @@ export function Sidebar({ locale = "bn" }: SidebarProps) {
                     : `bg-muted/60 text-foreground/80 group-hover:bg-gradient-to-tr ${item.badgeColor} group-hover:text-white group-hover:shadow-xs`
                 )}
               >
-                <Icon className="w-3.5 h-3.5" />
+                {isLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                ) : (
+                  <Icon className="w-3.5 h-3.5" />
+                )}
               </div>
 
               <span className="truncate">{dict.nav[item.key]}</span>
