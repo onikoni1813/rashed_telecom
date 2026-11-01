@@ -15,6 +15,14 @@ export async function POST(req: Request) {
         where: { userId },
         select: { credentialId: true },
       });
+
+      if (credentials.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error:
+            "আপনার অ্যাকাউন্টে এখনও ফিঙ্গারপ্রিন্ট যুক্ত করা হয়নি। অনুগ্রহ করে প্রথমে পিন কোড দিয়ে ড্যাশবোর্ডে প্রবেশ করে উপরে ডানপাশের প্রোফাইল মেনু থেকে 'ফিঙ্গারপ্রিন্ট যোগ করুন' অপশনে গিয়ে আঙুল স্ক্যান করে নিন।",
+        });
+      }
     } else {
       credentials = await prisma.userCredential.findMany({
         select: { credentialId: true },

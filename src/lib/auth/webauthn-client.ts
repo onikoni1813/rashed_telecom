@@ -178,9 +178,25 @@ export async function authenticateBiometric(userId?: string): Promise<{
   };
 
   // 3. Trigger native device fingerprint scan
-  const assertion = (await navigator.credentials.get({
-    publicKey: getOptions,
-  })) as PublicKeyCredential;
+  let assertion: PublicKeyCredential;
+  try {
+    assertion = (await navigator.credentials.get({
+      publicKey: getOptions,
+    })) as PublicKeyCredential;
+  } catch (err: any) {
+    if (
+      err.name === "NotAllowedError" ||
+      (err.message && (err.message.includes("not allowed") || err.message.includes("timed out")))
+    ) {
+      throw new Error(
+        "ফিঙ্গারপ্রিন্ট স্ক্যান বাতিল হয়েছে অথবা এই ডিভাইসে কোনো পাসকি পাওয়া যায়নি। অনুগ্রহ করে পিন দিয়ে প্রবেশ করে ফিঙ্গারপ্রিন্ট যুক্ত করুন।"
+      );
+    }
+    if (err.name === "AbortError" || err.name === "TimeoutError") {
+      throw new Error("ফিঙ্গারপ্রিন্ট স্ক্যান করার সময় শেষ হয়ে গেছে। পুনরায় চেষ্টা করুন।");
+    }
+    throw err;
+  }
 
   if (!assertion) {
     throw new Error("ফিঙ্গারপ্রিন্ট স্ক্যান বাতিল করা হয়েছে।");

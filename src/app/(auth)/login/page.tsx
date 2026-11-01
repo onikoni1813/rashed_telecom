@@ -146,6 +146,13 @@ export default function LoginPage() {
 
   // Handle Biometric / Fingerprint Login
   const handleBiometricLogin = async () => {
+    if (selectedStaff && !selectedStaff.hasBiometrics) {
+      setErrorMessage(
+        "আপনার এই ডিভাইসে এখনও ফিঙ্গারপ্রিন্ট যুক্ত করা হয়নি। অনুগ্রহ করে প্রথমে ৪ ডিজিটের পিন কোড দিয়ে ড্যাশবোর্ডে প্রবেশ করুন, এরপর উপরে ডানপাশের প্রোফাইল আইকনে ক্লিক করে 'ফিঙ্গারপ্রিন্ট যোগ করুন' অপশন থেকে আঙুল স্ক্যান করে নিন।"
+      );
+      return;
+    }
+
     setBiometricLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -160,7 +167,19 @@ export default function LoginPage() {
         }, 500);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "ফিঙ্গারপ্রিন্ট স্ক্যান ব্যর্থ হয়েছে।");
+      const msg = err.message || "";
+      if (
+        msg.includes("timed out") ||
+        msg.includes("not allowed") ||
+        msg.includes("NotAllowedError") ||
+        msg.includes("পাসকি পাওয়া যায়নি")
+      ) {
+        setErrorMessage(
+          "ফিঙ্গারপ্রিন্ট স্ক্যান বাতিল হয়েছে অথবা এই ডিভাইসে কোনো পাসকি নেই। প্রথমে পিন কোড দিয়ে লগইন করে প্রোফাইল থেকে ফিঙ্গারপ্রিন্ট যোগ করে নিন।"
+        );
+      } else {
+        setErrorMessage(msg || "ফিঙ্গারপ্রিন্ট স্ক্যান ব্যর্থ হয়েছে।");
+      }
     } finally {
       setBiometricLoading(false);
     }
@@ -266,13 +285,27 @@ export default function LoginPage() {
               type="button"
               disabled={biometricLoading || loading}
               onClick={handleBiometricLogin}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/25 border border-emerald-400/30 flex items-center justify-center gap-2.5 transition-all transform active:scale-98 disabled:opacity-50"
+              className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm shadow-lg border flex items-center justify-center gap-2.5 transition-all transform active:scale-98 disabled:opacity-50 ${
+                selectedStaff?.hasBiometrics
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/25 border-emerald-400/30"
+                  : "bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-slate-200 border-white/10 shadow-slate-900/40"
+              }`}
             >
-              <Fingerprint className={`w-5 h-5 ${biometricLoading ? "animate-pulse" : ""}`} />
+              <Fingerprint
+                className={`w-5 h-5 ${
+                  biometricLoading
+                    ? "animate-pulse"
+                    : selectedStaff?.hasBiometrics
+                      ? "text-emerald-300"
+                      : "text-amber-400"
+                }`}
+              />
               <span>
                 {biometricLoading
                   ? "ফিঙ্গারপ্রিন্ট স্ক্যান করা হচ্ছে..."
-                  : "ফিঙ্গারপ্রিন্ট স্পর্শ করে প্রবেশ করুন"}
+                  : selectedStaff?.hasBiometrics
+                    ? "ফিঙ্গারপ্রিন্ট স্পর্শ করে প্রবেশ করুন"
+                    : "ফিঙ্গারপ্রিন্ট সেট করতে প্রথমে পিন দিয়ে ঢুকুন"}
               </span>
             </button>
           </div>
