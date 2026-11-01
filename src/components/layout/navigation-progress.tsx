@@ -1,24 +1,36 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 export function NavigationProgress() {
   const pathname = usePathname();
   const [isNavigating, setIsNavigating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const timersRef = useRef<NodeJS.Timeout[]>([]);
 
-  // When pathname changes, complete navigation
+  const clearAllTimers = () => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  };
+
+  // When pathname changes, complete navigation smoothly
   useEffect(() => {
     if (isNavigating) {
+      clearAllTimers();
       setProgress(100);
       const timer = setTimeout(() => {
         setIsNavigating(false);
         setProgress(0);
-      }, 300);
+      }, 250);
       return () => clearTimeout(timer);
     }
   }, [pathname, isNavigating]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => clearAllTimers();
+  }, []);
 
   // Intercept click on links to start instant progress bar
   useEffect(() => {
@@ -46,17 +58,14 @@ export function NavigationProgress() {
       const currentUrl = window.location.pathname;
       const targetPath = href.split("?")[0];
 
-      if (targetPath !== currentUrl) {
+      if (targetPath && targetPath !== currentUrl) {
+        clearAllTimers();
         setIsNavigating(true);
-        setProgress(25);
+        setProgress(30);
 
-        const t1 = setTimeout(() => setProgress(65), 150);
-        const t2 = setTimeout(() => setProgress(85), 450);
-
-        return () => {
-          clearTimeout(t1);
-          clearTimeout(t2);
-        };
+        timersRef.current.push(setTimeout(() => setProgress(65), 100));
+        timersRef.current.push(setTimeout(() => setProgress(85), 280));
+        timersRef.current.push(setTimeout(() => setProgress(95), 700));
       }
     };
 

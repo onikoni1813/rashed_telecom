@@ -17,6 +17,7 @@ import {
   AlertCircle,
   X,
   KeyRound,
+  Menu,
 } from "lucide-react";
 import { Locale } from "@/types";
 import { getDictionary, formatDhakaDate } from "@/lib/i18n";
@@ -30,6 +31,7 @@ import {
 interface TopbarProps {
   locale: Locale;
   onLocaleChange: (newLocale: Locale) => void;
+  onOpenDrawer?: () => void;
 }
 
 interface UserProfile {
@@ -39,7 +41,7 @@ interface UserProfile {
   role: string;
 }
 
-export function Topbar({ locale, onLocaleChange }: TopbarProps) {
+export function Topbar({ locale, onLocaleChange, onOpenDrawer }: TopbarProps) {
   const dict = getDictionary(locale);
   const router = useRouter();
   const [currentDateStr, setCurrentDateStr] = useState<string>("");
@@ -143,8 +145,18 @@ export function Topbar({ locale, onLocaleChange }: TopbarProps) {
     <>
       <header className="h-16 border-b border-border/80 bg-card/80 backdrop-blur-2xl sticky top-0 z-20 flex items-center justify-between px-4 lg:px-8 shadow-xs">
         {/* Left side: Mobile Brand Context & Clock */}
-        <div className="flex items-center gap-3.5">
-          <Link href="/app" className="lg:hidden flex items-center gap-2.5 group">
+        <div className="flex items-center gap-2.5 sm:gap-3.5">
+          {/* Mobile Hamburger Drawer Button */}
+          <button
+            type="button"
+            onClick={onOpenDrawer}
+            className="lg:hidden p-2 -ml-1.5 rounded-xl text-foreground hover:bg-muted/70 active:scale-95 transition-all flex items-center justify-center border border-border/60 bg-background/60 shadow-2xs"
+            aria-label="Open Navigation Drawer"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <Link href="/app" className="lg:hidden flex items-center gap-2 group">
             <div className="relative w-8 h-8 rounded-xl overflow-hidden border border-border shadow-xs bg-muted flex items-center justify-center group-hover:scale-105 transition-transform">
               <Image
                 src="/icons/icon-192.jpg"
