@@ -100,9 +100,27 @@ export async function registerBiometricDevice(): Promise<{
   };
 
   // 3. Trigger native device biometric prompt (Windows Hello / Android Fingerprint / Touch ID)
-  const credential = (await navigator.credentials.create({
-    publicKey: createOptions,
-  })) as PublicKeyCredential;
+  let credential: PublicKeyCredential;
+  try {
+    credential = (await navigator.credentials.create({
+      publicKey: createOptions,
+    })) as PublicKeyCredential;
+  } catch (err: any) {
+    const msg = err?.message || "";
+    if (
+      msg.includes("credential manager") ||
+      msg.includes("not allowed") ||
+      err.name === "NotAllowedError"
+    ) {
+      throw new Error(
+        "গুগলের পাসকি ভল্ট লক থাকার কারণে সেন্সর রেসপন্ড করেনি। স্ক্রিনে আসা গুগলের 'Reset passkeys' বাটনে চাপ দিয়ে ফোনের স্ক্রিন লক দিয়ে পাসকি আনলক করে নিন।"
+      );
+    }
+    if (err.name === "AbortError" || err.name === "TimeoutError") {
+      throw new Error("ফিঙ্গারপ্রিন্ট স্ক্যান করার সময় শেষ হয়ে গেছে। পুনরায় চেষ্টা করুন।");
+    }
+    throw err;
+  }
 
   if (!credential) {
     throw new Error("ফিঙ্গারপ্রিন্ট রিডিং বাতিল করা হয়েছে।");
