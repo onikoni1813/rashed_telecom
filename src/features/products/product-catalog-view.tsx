@@ -27,10 +27,12 @@ import {
   Archive,
   Trash2,
   Power,
+  Pencil,
 } from "lucide-react";
 import {
   createProductAction,
   createCategoryAction,
+  updateProductAction,
   deleteProductAction,
   toggleProductStatusAction,
 } from "./product-actions";
@@ -135,6 +137,19 @@ export function ProductCatalogView({
   // Delete product state
   const [productToDelete, setProductToDelete] = useState<SerializedProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Edit Product State & Form
+  const [productToEdit, setProductToEdit] = useState<SerializedProduct | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCategoryId, setEditCategoryId] = useState("");
+  const [editBrand, setEditBrand] = useState("");
+  const [editModel, setEditModel] = useState("");
+  const [editBarcode, setEditBarcode] = useState("");
+  const [editCostPrice, setEditCostPrice] = useState<number | "">("");
+  const [editSellingPrice, setEditSellingPrice] = useState<number | "">("");
+  const [editTrackStock, setEditTrackStock] = useState(true);
+  const [editMinStockAlert, setEditMinStockAlert] = useState<number>(5);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   const showNotification = (msg: string, isError = false) => {
     if (isError) {
@@ -377,11 +392,80 @@ export function ProductCatalogView({
     }
   };
 
+  const handleOpenEdit = (product: SerializedProduct) => {
+    setProductToEdit(product);
+    setEditName(product.name);
+    setEditCategoryId(product.category.id);
+    setEditBrand(product.brand || "");
+    setEditModel(product.modelNumber || "");
+    setEditBarcode(product.barcode || "");
+    setEditCostPrice(product.costPrice ?? "");
+    setEditSellingPrice(product.sellingPrice ?? "");
+    setEditTrackStock(product.isTrackStock);
+    setEditMinStockAlert(product.minStockAlert ?? 5);
+  };
+
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productToEdit) return;
+
+    if (!editName.trim()) {
+      showNotification("পণ্যের নাম দিন।", true);
+      return;
+    }
+    if (!editCategoryId) {
+      showNotification("ক্যাটাগরি নির্বাচন করুন।", true);
+      return;
+    }
+    if (editSellingPrice === "" || Number(editSellingPrice) < 0) {
+      showNotification("সঠিক বিক্রয় মূল্য নির্ধারণ করুন।", true);
+      return;
+    }
+
+    setIsSubmittingEdit(true);
+    try {
+      const res = await updateProductAction({
+        productId: productToEdit.id,
+        shopId,
+        name: editName.trim(),
+        categoryId: editCategoryId,
+        brand: editBrand.trim() || null,
+        modelNumber: editModel.trim() || null,
+        barcode: editBarcode.trim() || null,
+        costPrice: Number(editCostPrice) || 0,
+        sellingPrice: Number(editSellingPrice) || 0,
+        minStockAlert: editMinStockAlert,
+        isTrackStock: editTrackStock,
+      });
+
+      if (!res.success || !res.product) {
+        showNotification(res.error || "পণ্য আপডেট করতে সমস্যা হয়েছে।", true);
+        return;
+      }
+
+      setProducts((prev) =>
+        prev.map((p) => (p.id === res.product!.id ? (res.product as SerializedProduct) : p))
+      );
+      showNotification(`"${res.product.name}" তথ্য সফলভাবে আপডেট হয়েছে!`);
+      setProductToEdit(null);
+    } catch (err: any) {
+      showNotification(err.message || "পণ্য আপডেটে সমস্যা হয়েছে।", true);
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
   // Profit Margin calculation helper for Add Product Modal
   const cost = Number(prodCostPrice) || 0;
   const sell = Number(prodSellingPrice) || 0;
   const estimatedProfit = sell > 0 ? sell - cost : 0;
   const profitMarginPercent = cost > 0 && sell > 0 ? Math.round(((sell - cost) / cost) * 100) : 0;
+
+  // Profit Margin calculation helper for Edit Product Modal
+  const editCost = Number(editCostPrice) || 0;
+  const editSell = Number(editSellingPrice) || 0;
+  const editEstimatedProfit = editSell > 0 ? editSell - editCost : 0;
+  const editProfitMarginPercent = editCost > 0 && editSell > 0 ? Math.round(((editSell - editCost) / editCost) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -812,14 +896,24 @@ export function ProductCatalogView({
                         </button>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => setProductToDelete(product)}
-                          title="পণ্য মুছে ফেলুন"
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(product)}
+                            title="পণ্য সম্পাদনা (Edit)"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-indigo-600 hover:bg-indigo-500/10 transition-colors cursor-pointer"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductToDelete(product)}
+                            title="পণ্য মুছে ফেলুন"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -888,6 +982,224 @@ export function ProductCatalogView({
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: EDIT PRODUCT */}
+      {/* ========================================================================= */}
+      {productToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-panel bg-card border border-border/80 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-border/60 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-foreground">পণ্য সম্পাদনা করুন (Edit Product)</h3>
+                  <p className="text-xs text-muted-foreground">পণ্যের নাম, দাম বা অন্যান্য তথ্য পরিবর্তন করুন</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProductToEdit(null)}
+                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleUpdateProduct} className="space-y-4">
+              {/* Product Name */}
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  পণ্যের নাম <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="যেমন: Shahi 15W Type C, iPhone 15 Pro, ইত্যাদি"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background text-sm font-medium focus:ring-2 focus:ring-indigo-500/30 focus:outline-hidden transition-all"
+                />
+              </div>
+
+              {/* Category Selection */}
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  ক্যাটাগরি <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={editCategoryId}
+                  onChange={(e) => setEditCategoryId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background text-sm font-medium focus:ring-2 focus:ring-indigo-500/30 focus:outline-hidden transition-all"
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Brand and Model Number */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">ব্র্যান্ড (Brand)</label>
+                  <input
+                    type="text"
+                    value={editBrand}
+                    onChange={(e) => setEditBrand(e.target.value)}
+                    placeholder="যেমন: Shahi, Apple, Samsung"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background text-sm font-medium focus:ring-2 focus:ring-indigo-500/30 focus:outline-hidden transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">মডেল নাম্বার (Model No)</label>
+                  <input
+                    type="text"
+                    value={editModel}
+                    onChange={(e) => setEditModel(e.target.value)}
+                    placeholder="যেমন: Type-C 15W, SM-A155F"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background text-sm font-medium focus:ring-2 focus:ring-indigo-500/30 focus:outline-hidden transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Barcode & SKU */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">SKU কোড (স্থায়ী)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={productToEdit.sku}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border/40 bg-muted/50 font-mono text-sm text-muted-foreground cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">বারকোড (Barcode)</label>
+                  <input
+                    type="text"
+                    value={editBarcode}
+                    onChange={(e) => setEditBarcode(e.target.value)}
+                    placeholder="যেমন: 8901234567890"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background font-mono text-sm focus:ring-2 focus:ring-indigo-500/30 focus:outline-hidden transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Pricing & Profit Calculation */}
+              <div className="p-4 rounded-2xl border border-border/70 bg-muted/30 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-foreground mb-1.5">ক্রয় মূল্য (Cost Price ৳)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={editCostPrice}
+                      onChange={(e) => setEditCostPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                      placeholder="0"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background font-mono font-bold text-sm focus:ring-2 focus:ring-indigo-500/30 focus:outline-hidden transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-foreground mb-1.5">
+                      বিক্রয় মূল্য (Selling Price ৳) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      step="any"
+                      value={editSellingPrice}
+                      onChange={(e) => setEditSellingPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                      placeholder="0"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background font-mono font-bold text-sm text-indigo-600 dark:text-indigo-400 focus:ring-2 focus:ring-indigo-500/30 focus:outline-hidden transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Profit Preview */}
+                {editSell > 0 && (
+                  <div className="flex items-center justify-between text-xs px-3 py-2 rounded-xl bg-card border border-border/60">
+                    <span className="text-muted-foreground font-medium">প্রত্যাশিত লাভ ও মার্জিন:</span>
+                    <div className="flex items-center gap-2 font-bold font-mono">
+                      <span className={editEstimatedProfit >= 0 ? "text-emerald-500" : "text-rose-500"}>
+                        {formatBDT(editEstimatedProfit, "en")}
+                      </span>
+                      {editProfitMarginPercent > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 text-[11px]">
+                          +{editProfitMarginPercent}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Stock Alert & Tracking */}
+              <div className="p-4 rounded-2xl border border-border/70 bg-muted/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-foreground">ইনভেন্টরি স্টক ট্র্যাক রাখুন</div>
+                    <div className="text-[11px] text-muted-foreground">পণ্য বিক্রির সাথে স্বয়ংক্রিয় স্টক সমন্বয়</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editTrackStock}
+                    onChange={(e) => setEditTrackStock(e.target.checked)}
+                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-border"
+                  />
+                </div>
+
+                {editTrackStock && (
+                  <div className="pt-2 border-t border-border/50">
+                    <label className="block text-xs font-bold text-foreground mb-1.5">কম স্টক অ্যালার্ট সীমা (টি)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editMinStockAlert}
+                      onChange={(e) => setEditMinStockAlert(Number(e.target.value) || 0)}
+                      placeholder="5"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background font-mono text-sm focus:ring-2 focus:ring-indigo-500/30 focus:outline-hidden transition-all"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">
+                <button
+                  type="button"
+                  onClick={() => setProductToEdit(null)}
+                  className="px-5 py-2.5 rounded-xl border border-border text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingEdit}
+                  className="shimmer-button inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-500/25 hover:brightness-110 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingEdit ? (
+                    <span>আপডেট হচ্ছে...</span>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>আপডেট সংরক্ষণ করুন</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

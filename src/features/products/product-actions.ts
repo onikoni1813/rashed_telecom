@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
-import { createProduct, deleteProduct, toggleProductStatus } from "./product-service";
+import { createProduct, updateProduct, deleteProduct, toggleProductStatus } from "./product-service";
 
 export interface CreateProductActionInput {
   shopId: string;
@@ -209,6 +209,87 @@ export async function toggleProductStatusAction(
     return {
       success: false,
       error: err.message || "স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে।",
+    };
+  }
+}
+
+export interface UpdateProductActionInput {
+  productId: string;
+  shopId: string;
+  name?: string;
+  brand?: string | null;
+  categoryId?: string;
+  barcode?: string | null;
+  modelNumber?: string | null;
+  costPrice?: number;
+  sellingPrice?: number;
+  minStockAlert?: number;
+  isTrackStock?: boolean;
+}
+
+export async function updateProductAction(input: UpdateProductActionInput) {
+  try {
+    const shopId = input.shopId || "11111111-1111-1111-1111-111111111111";
+    if (!input.productId) {
+      return { success: false, error: "পণ্যের আইডি আবশ্যক।" };
+    }
+    const name = input.name?.trim();
+    if (input.name !== undefined && !name) {
+      return { success: false, error: "পণ্যের নাম ফাঁকা রাখা যাবে না।" };
+    }
+
+    const updated = await updateProduct(input.productId, shopId, {
+      ...(name ? { name } : {}),
+      ...(input.brand !== undefined ? { brand: input.brand?.trim() || null } : {}),
+      ...(input.categoryId ? { categoryId: input.categoryId } : {}),
+      ...(input.barcode !== undefined ? { barcode: input.barcode?.trim() || null } : {}),
+      ...(input.modelNumber !== undefined ? { modelNumber: input.modelNumber?.trim() || null } : {}),
+      ...(input.costPrice !== undefined ? { costPrice: Number(input.costPrice) || 0 } : {}),
+      ...(input.sellingPrice !== undefined ? { sellingPrice: Number(input.sellingPrice) || 0 } : {}),
+      ...(input.minStockAlert !== undefined ? { minStockAlert: Number(input.minStockAlert) } : {}),
+      ...(input.isTrackStock !== undefined ? { isTrackStock: input.isTrackStock } : {}),
+    });
+
+    revalidatePath("/app/products");
+    revalidatePath("/app/pos");
+    revalidatePath("/app/inventory");
+
+    return {
+      success: true,
+      product: {
+        id: updated.id,
+        name: updated.name,
+        brand: updated.brand,
+        sku: updated.sku,
+        barcode: updated.barcode,
+        modelNumber: updated.modelNumber,
+        isTrackStock: updated.isTrackStock,
+        costPrice: Number(updated.costPrice),
+        sellingPrice: Number(updated.sellingPrice),
+        minStockAlert: updated.minStockAlert,
+        isActive: updated.isActive,
+        createdAt: updated.createdAt.toISOString(),
+        category: {
+          id: updated.category.id,
+          name: updated.category.name,
+          type: updated.category.type,
+        },
+        stockBalances: updated.stockBalances.map((b: any) => ({
+          id: b.id,
+          quantityOnHand: Number(b.quantityOnHand),
+          averageCost: Number(b.averageCost),
+          location: {
+            id: b.location?.id || b.locationId,
+            name: b.location?.name || "প্রধান দোকান",
+          },
+        })),
+      },
+    };
+  } catch (err: any) {
+    console.error("updateProductAction error:", err);
+    return {
+      success: false,
+      error: err.message || "পণ্য আপডেট করতে ব্যর্থ হয়েছে।",
     };
   }
 }

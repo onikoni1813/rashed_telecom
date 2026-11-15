@@ -149,7 +149,9 @@ export async function updateProduct(
     },
     include: {
       category: true,
-      stockBalances: true,
+      stockBalances: {
+        include: { location: true },
+      },
     },
   });
 }
