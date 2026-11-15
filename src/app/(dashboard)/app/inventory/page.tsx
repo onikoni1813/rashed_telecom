@@ -30,8 +30,8 @@ export default function InventoryPage() {
 async function InventoryDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
-  // Parallel fetch stock balances, movements, and locations
-  const [rawBalances, rawMovements, fetchedLocations] = await Promise.all([
+  // Parallel fetch stock balances, movements, locations, and categories
+  const [rawBalances, rawMovements, fetchedLocations, rawCategories] = await Promise.all([
     prisma.stockBalance.findMany({
       where: { shopId: defaultShopId },
       include: {
@@ -41,7 +41,7 @@ async function InventoryDataLoader() {
         location: true,
       },
       orderBy: { updatedAt: "desc" },
-      take: 100,
+      take: 200,
     }),
     prisma.stockMovement.findMany({
       where: { shopId: defaultShopId },
@@ -56,6 +56,10 @@ async function InventoryDataLoader() {
     prisma.location.findMany({
       where: { shopId: defaultShopId },
       orderBy: { isDefault: "desc" },
+    }),
+    prisma.category.findMany({
+      where: { shopId: defaultShopId },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -87,7 +91,9 @@ async function InventoryDataLoader() {
       sku: b.product.sku,
       costPrice: Number(b.product.costPrice),
       sellingPrice: Number(b.product.sellingPrice),
-      category: b.product.category ? { name: b.product.category.name } : null,
+      category: b.product.category
+        ? { id: b.product.category.id, name: b.product.category.name }
+        : null,
     },
   }));
 
@@ -114,12 +120,18 @@ async function InventoryDataLoader() {
     isDefault: l.isDefault,
   }));
 
+  const categories = rawCategories.map((c) => ({
+    id: c.id,
+    name: c.name,
+  }));
+
   return (
     <InventoryView
       shopId={defaultShopId}
       initialBalances={initialBalances}
       initialMovements={initialMovements}
       locations={locations}
+      categories={categories}
     />
   );
 }

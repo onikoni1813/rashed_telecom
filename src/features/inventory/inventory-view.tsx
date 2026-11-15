@@ -22,6 +22,8 @@ import {
   Package,
   Wrench,
   AlertTriangle,
+  Filter,
+  Tag,
 } from "lucide-react";
 import { createStockAdjustmentAction } from "./inventory-actions";
 
@@ -41,6 +43,7 @@ export interface SerializedBalance {
     costPrice: number;
     sellingPrice: number;
     category?: {
+      id?: string;
       name: string;
     } | null;
   };
@@ -71,11 +74,17 @@ export interface SerializedShopLocation {
   isDefault: boolean;
 }
 
+export interface SerializedCategoryRef {
+  id: string;
+  name: string;
+}
+
 interface InventoryViewProps {
   shopId: string;
   initialBalances: SerializedBalance[];
   initialMovements: SerializedMovement[];
   locations: SerializedShopLocation[];
+  categories?: SerializedCategoryRef[];
 }
 
 export function InventoryView({
@@ -83,16 +92,20 @@ export function InventoryView({
   initialBalances,
   initialMovements,
   locations,
+  categories = [],
 }: InventoryViewProps) {
   const [balances, setBalances] = useState<SerializedBalance[]>(initialBalances);
   const [movements, setMovements] = useState<SerializedMovement[]>(initialMovements);
 
   // Filters
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [movementFilter, setMovementFilter] = useState<string>("ALL");
 
   // Stock Adjustment Modal
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [modalCategoryFilter, setModalCategoryFilter] = useState<string>("ALL");
+  const [modalSearch, setModalSearch] = useState<string>("");
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState(locations[0]?.id || "");
   const [adjustmentDirection, setAdjustmentDirection] = useState<"OUT" | "IN">("OUT"); // OUT = deduction, IN = addition
@@ -114,11 +127,69 @@ export function InventoryView({
     }
   };
 
+  // Unique categories list with counts
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    balances.forEach((b) => {
+      if (b.product.category?.name) {
+        set.add(b.product.category.name);
+      }
+    });
+    if (categories && categories.length > 0) {
+      categories.forEach((c) => set.add(c.name));
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [balances, categories]);
+
   // Open adjustment modal for specific product
   const handleOpenAdjustForProduct = (productId: string, locationId?: string) => {
     setSelectedProductId(productId);
     if (locationId) setSelectedLocationId(locationId);
+    const found = balances.find((b) => b.product.id === productId);
+    if (found?.product.category?.name) {
+      setModalCategoryFilter(found.product.category.name);
+    } else {
+      setModalCategoryFilter("ALL");
+    }
+    setModalSearch("");
     setIsAdjustModalOpen(true);
+  };
+
+  // Open general adjustment modal from top button
+  const handleOpenGeneralAdjustment = () => {
+    const initialCat = categoryFilter !== "ALL" ? categoryFilter : "ALL";
+    setModalCategoryFilter(initialCat);
+    setModalSearch("");
+    const matching = balances.filter(
+      (b) => initialCat === "ALL" || b.product.category?.name === initialCat
+    );
+    if (matching.length > 0) {
+      setSelectedProductId(matching[0].product.id);
+      setSelectedLocationId(matching[0].location.id);
+    } else if (balances.length > 0) {
+      setSelectedProductId(balances[0].product.id);
+      setSelectedLocationId(balances[0].location.id);
+    }
+    setIsAdjustModalOpen(true);
+  };
+
+  // Change category inside modal and auto-select product if needed
+  const handleModalCategoryChange = (newCat: string) => {
+    setModalCategoryFilter(newCat);
+    const newFiltered = balances.filter((b) => {
+      if (newCat !== "ALL" && b.product.category?.name !== newCat) return false;
+      if (!modalSearch.trim()) return true;
+      const q = modalSearch.toLowerCase().trim();
+      return (
+        b.product.name.toLowerCase().includes(q) ||
+        b.product.sku.toLowerCase().includes(q) ||
+        (b.product.category?.name && b.product.category.name.toLowerCase().includes(q))
+      );
+    });
+    if (newFiltered.length > 0 && !newFiltered.some((b) => b.product.id === selectedProductId)) {
+      setSelectedProductId(newFiltered[0].product.id);
+      setSelectedLocationId(newFiltered[0].location.id);
+    }
   };
 
   // Handle Adjustment Submit
@@ -190,19 +261,47 @@ export function InventoryView({
     }
   };
 
-  // Filtered Balances
+  // Filtered Balances for Main Table
   const filteredBalances = useMemo(() => {
-    if (!search.trim()) return balances;
-    const q = search.toLowerCase().trim();
     return balances.filter((b) => {
+      if (categoryFilter !== "ALL" && b.product.category?.name !== categoryFilter) {
+        return false;
+      }
+      if (!search.trim()) return true;
+      const q = search.toLowerCase().trim();
       return (
         b.product.name.toLowerCase().includes(q) ||
         b.product.sku.toLowerCase().includes(q) ||
         b.location.name.toLowerCase().includes(q) ||
-        b.product.category?.name.toLowerCase().includes(q)
+        (b.product.category?.name && b.product.category.name.toLowerCase().includes(q))
       );
     });
-  }, [balances, search]);
+  }, [balances, search, categoryFilter]);
+
+  // Filtered Balances for Adjustment Modal
+  const filteredModalBalances = useMemo(() => {
+    return balances.filter((b) => {
+      if (modalCategoryFilter !== "ALL" && b.product.category?.name !== modalCategoryFilter) {
+        return false;
+      }
+      if (!modalSearch.trim()) return true;
+      const q = modalSearch.toLowerCase().trim();
+      return (
+        b.product.name.toLowerCase().includes(q) ||
+        b.product.sku.toLowerCase().includes(q) ||
+        (b.product.category?.name && b.product.category.name.toLowerCase().includes(q))
+      );
+    });
+  }, [balances, modalCategoryFilter, modalSearch]);
+
+  // Currently Selected Balance
+  const selectedBalance = useMemo(() => {
+    return (
+      balances.find(
+        (b) => b.product.id === selectedProductId && b.location.id === selectedLocationId
+      ) || balances.find((b) => b.product.id === selectedProductId)
+    );
+  }, [balances, selectedProductId, selectedLocationId]);
 
   // Filtered Movements
   const filteredMovements = useMemo(() => {
@@ -314,12 +413,7 @@ export function InventoryView({
             {/* Manual Stock Adjustment Button */}
             <button
               type="button"
-              onClick={() => {
-                if (balances.length > 0 && !selectedProductId) {
-                  setSelectedProductId(balances[0].product.id);
-                }
-                setIsAdjustModalOpen(true);
-              }}
+              onClick={handleOpenGeneralAdjustment}
               className="flex-1 sm:flex-initial shimmer-button inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/25 hover:brightness-110 transition-all cursor-pointer"
             >
               <SlidersHorizontal className="w-4 h-4" />
@@ -456,6 +550,49 @@ export function InventoryView({
           </button>
         </div>
       </div>
+
+      {/* Category Filter Chips for Stock Balances Table */}
+      {availableCategories.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setCategoryFilter("ALL")}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              categoryFilter === "ALL"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                : "bg-card/70 hover:bg-card border border-border/60 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Tag className="w-3.5 h-3.5" />
+            <span>সকল ক্যাটাগরি ({balances.length})</span>
+          </button>
+          {availableCategories.map((catName) => {
+            const count = balances.filter((b) => b.product.category?.name === catName).length;
+            const isSelected = categoryFilter === catName;
+            return (
+              <button
+                key={catName}
+                type="button"
+                onClick={() => setCategoryFilter(isSelected ? "ALL" : catName)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  isSelected
+                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                    : "bg-card/70 hover:bg-card border border-border/60 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>{catName}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+                    isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Stock Balances Table */}
       <div className="space-y-3">
@@ -686,25 +823,160 @@ export function InventoryView({
             </div>
 
             <form onSubmit={handleAdjustmentSubmit} className="space-y-4">
+              {/* Category Filter and Search Section */}
+              <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/70 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>ক্যাটাগরি অনুযায়ী ফিল্টার</span>
+                  </span>
+                  {modalCategoryFilter !== "ALL" && (
+                    <button
+                      type="button"
+                      onClick={() => handleModalCategoryChange("ALL")}
+                      className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
+                    >
+                      ফিল্টার রিসেট
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <select
+                      value={modalCategoryFilter}
+                      onChange={(e) => handleModalCategoryChange(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background text-xs font-semibold text-foreground focus:ring-2 focus:ring-emerald-500/30 focus:outline-hidden transition-all"
+                    >
+                      <option value="ALL">📁 সকল ক্যাটাগরি ({balances.length})</option>
+                      {availableCategories.map((cat) => {
+                        const count = balances.filter((b) => b.product.category?.name === cat).length;
+                        return (
+                          <option key={cat} value={cat}>
+                            {cat} ({count} টি পণ্য)
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={modalSearch}
+                      onChange={(e) => setModalSearch(e.target.value)}
+                      placeholder="পণ্য বা SKU দিয়ে খুঁজুন..."
+                      className="w-full pl-8 pr-7 py-2 rounded-xl border border-border/80 bg-background text-xs font-medium focus:ring-2 focus:ring-emerald-500/30 focus:outline-hidden transition-all"
+                    />
+                    {modalSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setModalSearch("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Category Pills */}
+                {availableCategories.length > 0 && (
+                  <div className="flex items-center gap-1 overflow-x-auto pt-1 scrollbar-none">
+                    <button
+                      type="button"
+                      onClick={() => handleModalCategoryChange("ALL")}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        modalCategoryFilter === "ALL"
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "bg-background/80 hover:bg-background text-muted-foreground border border-border/50"
+                      }`}
+                    >
+                      সব ({balances.length})
+                    </button>
+                    {availableCategories.map((cat) => {
+                      const count = balances.filter((b) => b.product.category?.name === cat).length;
+                      const isSelected = modalCategoryFilter === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => handleModalCategoryChange(cat)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                            isSelected
+                              ? "bg-emerald-600 text-white shadow-xs"
+                              : "bg-background/80 hover:bg-background text-muted-foreground border border-border/50"
+                          }`}
+                        >
+                          {cat} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Product Selector */}
               <div>
-                <label className="block text-xs font-bold text-foreground mb-1.5">
-                  পণ্য নির্বাচন করুন <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  required
-                  value={selectedProductId}
-                  onChange={(e) => setSelectedProductId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background text-sm font-medium focus:ring-2 focus:ring-emerald-500/30 focus:outline-hidden transition-all"
-                >
-                  <option value="" disabled>পণ্য নির্বাচন করুন</option>
-                  {balances.map((b) => (
-                    <option key={b.product.id} value={b.product.id}>
-                      {b.product.name} (মজুদ: {b.quantityOnHand} টি) — {b.product.sku}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-foreground">
+                    পণ্য নির্বাচন করুন <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    মিল পাওয়া গেছে: {filteredModalBalances.length} টি
+                  </span>
+                </div>
+                {filteredModalBalances.length === 0 ? (
+                  <div className="p-3.5 text-center rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-700 dark:text-amber-400">
+                    এই ক্যাটাগরি বা অনুসন্ধানে কোনো পণ্য পাওয়া যায়নি।
+                  </div>
+                ) : (
+                  <select
+                    required
+                    value={selectedProductId}
+                    onChange={(e) => {
+                      setSelectedProductId(e.target.value);
+                      const b = balances.find((x) => x.product.id === e.target.value);
+                      if (b) setSelectedLocationId(b.location.id);
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background text-sm font-medium focus:ring-2 focus:ring-emerald-500/30 focus:outline-hidden transition-all"
+                  >
+                    <option value="" disabled>পণ্য নির্বাচন করুন</option>
+                    {filteredModalBalances.map((b) => (
+                      <option key={b.product.id} value={b.product.id}>
+                        {b.product.name} (মজুদ: {b.quantityOnHand} টি) — {b.product.sku} {b.product.category?.name ? `[${b.product.category.name}]` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
+
+              {/* Selected Product Live Card */}
+              {selectedBalance && (
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between animate-in fade-in duration-200">
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-foreground text-sm flex items-center gap-2">
+                      <span>{selectedBalance.product.name}</span>
+                      {selectedBalance.product.category?.name && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                          {selectedBalance.product.category.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono flex items-center gap-2">
+                      <span>SKU: {selectedBalance.product.sku}</span>
+                      <span>• গড় কেনা: {formatBDT(Number(selectedBalance.averageCost), "en")}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[11px] text-muted-foreground font-medium">বর্তমান মজুদ</div>
+                    <div className="text-base font-black font-mono text-emerald-600 dark:text-emerald-400">
+                      {selectedBalance.quantityOnHand} টি
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Location Selector */}
               <div>
@@ -780,6 +1052,24 @@ export function InventoryView({
                   className="w-full px-3.5 py-2.5 rounded-xl border border-border/70 bg-background font-mono text-sm font-bold focus:ring-2 focus:ring-emerald-500/30 focus:outline-hidden transition-all"
                 />
               </div>
+
+              {/* Live Balance Calculation Preview */}
+              {selectedBalance && adjustQty !== "" && Number(adjustQty) > 0 && (
+                <div className="flex items-center justify-between text-xs px-3.5 py-2.5 rounded-xl bg-card border border-border/70 animate-in fade-in duration-200">
+                  <span className="text-muted-foreground font-medium">সমন্বয়ের পর নতুন মজুদ দাঁড়াবে:</span>
+                  <div className="font-mono font-black text-sm">
+                    {adjustmentDirection === "OUT" ? (
+                      <span className={Number(selectedBalance.quantityOnHand) - Number(adjustQty) < 0 ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400"}>
+                        {Number(selectedBalance.quantityOnHand) - Number(adjustQty)} টি ({selectedBalance.quantityOnHand} - {adjustQty})
+                      </span>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400">
+                        {Number(selectedBalance.quantityOnHand) + Number(adjustQty)} টি ({selectedBalance.quantityOnHand} + {adjustQty})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Reason */}
               <div>
