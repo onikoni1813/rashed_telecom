@@ -783,8 +783,8 @@ export function AccountsView({
                   }
                   className="w-full px-3 py-2 text-sm rounded-lg border bg-background"
                 >
-                  <option value="INJECTION">মূলধন বিনিয়োগ (Capital Injection - ৩০০০)</option>
-                  <option value="DRAWING">ব্যক্তিগত উত্তোলন (Owner Drawing - ৩১০০)</option>
+                  <option value="INJECTION">মূলধন বিনিয়োগ (খতিয়ান কোড: ৩০০০)</option>
+                  <option value="DRAWING">ব্যক্তিগত উত্তোলন (খতিয়ান কোড: ৩১০০)</option>
                 </select>
                 <span className="text-[11px] text-muted-foreground mt-1 block">
                   * নিয়ম: মালিকের ব্যক্তিগত উত্তোলন কখনোই অপারেটিং খরচ হিসেবে গণ্য হয় না।
@@ -809,7 +809,7 @@ export function AccountsView({
 
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  মাধ্যম (Payment Method) *
+                  লেনদেনের মাধ্যম (Payment Method) *
                 </label>
                 <select
                   value={ownerTxData.paymentMethod}
@@ -821,10 +821,10 @@ export function AccountsView({
                   }
                   className="w-full px-3 py-2 text-sm rounded-lg border bg-background"
                 >
-                  <option value="CASH">ক্যাশ (Cash on Hand 1000)</option>
-                  <option value="BKASH">বিকাশ (bKash 1010)</option>
-                  <option value="NAGAD">নগদ (Nagad 1010)</option>
-                  <option value="BANK">ব্যাংক একাউন্ট (Bank 1010)</option>
+                  <option value="CASH">ক্যাশ ড্রয়ার (কোড: ১০০০)</option>
+                  <option value="BKASH">বিকাশ ওয়ালেট (কোড: ১০১০)</option>
+                  <option value="NAGAD">নগদ ওয়ালেট (কোড: ১০১০)</option>
+                  <option value="BANK">ব্যাংক একাউন্ট (কোড: ১০১০)</option>
                 </select>
               </div>
 
