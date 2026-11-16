@@ -39,6 +39,8 @@ import {
 } from "lucide-react";
 import { createCustomerAction } from "@/features/customers/customer-actions";
 import { CashMemo, InvoiceData } from "./cash-memo";
+import { queueOutboxItem } from "@/lib/offline/sync-engine";
+import { getOfflineDatabase } from "@/lib/offline/db";
 
 export interface CashDrawerData {
   sessionId: string | null;
@@ -114,7 +116,66 @@ export function PosTerminal({
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [drawerMessage, setDrawerMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const [customerList, setCustomerList] = useState<CustomerItem[]>(customers);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  // Monitor network status
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsOnline(navigator.onLine);
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      };
+    }
+  }, []);
+
+  // Offline-resilient Product & Customer lists
+  const [productList, setProductList] = useState<ProductItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`cached_pos_products_${shopId}`);
+        if (cached && (!products || products.length === 0)) {
+          return JSON.parse(cached);
+        }
+      } catch (e) {}
+    }
+    return products || [];
+  });
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      setProductList(products);
+      try {
+        localStorage.setItem(`cached_pos_products_${shopId}`, JSON.stringify(products));
+      } catch (e) {}
+    }
+  }, [products, shopId]);
+
+  const [customerList, setCustomerList] = useState<CustomerItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`cached_pos_customers_${shopId}`);
+        if (cached && (!customers || customers.length === 0)) {
+          return JSON.parse(cached);
+        }
+      } catch (e) {}
+    }
+    return customers || [];
+  });
+
+  useEffect(() => {
+    if (customers && customers.length > 0) {
+      setCustomerList(customers);
+      try {
+        localStorage.setItem(`cached_pos_customers_${shopId}`, JSON.stringify(customers));
+      } catch (e) {}
+    }
+  }, [customers, shopId]);
+
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -230,6 +291,7 @@ export function PosTerminal({
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [completedInvoice, setCompletedInvoice] = useState<InvoiceData | null>(null);
 
   // Active IMEI selector modal
@@ -239,10 +301,10 @@ export function PosTerminal({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Categories list
-  const categories = Array.from(new Set(products.map((p) => p.category.name)));
+  const categories = Array.from(new Set(productList.map((p) => p.category.name)));
 
   // Filtered products
-  const filteredProducts = products.filter((p) => {
+  const filteredProducts = productList.filter((p) => {
     const matchesSearch =
       search === "" ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -411,6 +473,132 @@ export function PosTerminal({
       payments,
     };
 
+    const snapshotItems = cart.map((it) => ({
+      id: it.product.id,
+      productName: it.product.name,
+      brand: it.product.brand,
+      quantity: it.quantity,
+      unitPrice: it.unitPrice,
+      subtotal: it.quantity * it.unitPrice,
+      serials: it.selectedSerialIds.map((sid) => {
+        const sn = it.product.serialNumbers?.find((s) => s.id === sid);
+        return sn?.imei1 || sn?.imei2 || sid;
+      }),
+    }));
+
+    // Helper to persist offline sale draft in IndexedDB and local storage
+    const saveOfflineSale = async (offlineReason?: string) => {
+      const offlineInvoiceNumber = `INV-OFFLINE-${Date.now().toString().slice(-6)}`;
+      const outboxPayload = {
+        ...payload,
+        offlineInvoiceNumber,
+        createdAt: new Date().toISOString(),
+      };
+
+      // 1. Add to Dexie sync outbox for automatic server sync upon network restoration
+      await queueOutboxItem(shopId, "SALE", outboxPayload);
+
+      // 2. Add to Dexie draftSales for tracking
+      try {
+        const db = getOfflineDatabase();
+        await db.draftSales.add({
+          id: crypto.randomUUID(),
+          shopId,
+          cashierId,
+          customerPhone: finalPhone,
+          customerName: finalName,
+          items: cart.map((it) => ({
+            productId: it.product.id,
+            productName: it.product.name,
+            sku: it.product.sku,
+            quantity: it.quantity,
+            unitPrice: it.unitPrice,
+            serialNumber: it.selectedSerialIds[0] || null,
+          })),
+          totalAmount,
+          paidAmount: totalPaid,
+          paymentMethod: (payments[0]?.method as any) || "CASH",
+          notes: offlineReason || "অফলাইন ক্যাশ মেমো",
+          status: "PENDING",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn("Could not save to db.draftSales:", e);
+      }
+
+      // 3. Decrement local stock in productList and update localStorage
+      setProductList((prev) => {
+        const updated = prev.map((p) => {
+          const cartItem = cart.find((ci) => ci.product.id === p.id);
+          if (!cartItem) return p;
+          return {
+            ...p,
+            stockBalances: p.stockBalances.map((sb) => ({
+              ...sb,
+              quantityOnHand: Math.max(0, sb.quantityOnHand - cartItem.quantity),
+            })),
+          };
+        });
+        try {
+          localStorage.setItem(`cached_pos_products_${shopId}`, JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+
+      // 4. Update cash drawer
+      const addedCash = payments
+        .filter((p) => p.method === "CASH")
+        .reduce((sum, p) => sum + Number(p.amount), 0);
+
+      if (addedCash > 0) {
+        setCashDrawer((prev) => ({
+          ...prev,
+          currentCash: prev.currentCash + addedCash,
+          totalCashSales: prev.totalCashSales + addedCash,
+        }));
+      }
+
+      // 5. Present completed invoice receipt for customer
+      setCompletedInvoice({
+        invoiceNumber: offlineInvoiceNumber,
+        createdAt: new Date().toISOString(),
+        customerName: finalName || "ওয়াক-ইন কাস্টমার",
+        customerPhone: finalPhone || null,
+        cashierName: "অ্যাডমিন / ক্যাশিয়ার (অফলাইন)",
+        items: snapshotItems,
+        subtotal: subtotal,
+        discount: discount,
+        totalAmount: totalAmount,
+        paidAmount: totalPaid,
+        dueAmount: dueAmount,
+        payments: payments,
+        cashTendered: cashTendered,
+        changeDue: changeDue,
+        notes: "অফলাইন ড্রাফট মেমো — ইন্টারনেট সংযুক্ত হলে স্বয়ংক্রিয়ভাবে সার্ভারের সাথে সিঙ্ক হবে।",
+      });
+
+      setSuccessMessage(
+        "ইন্টারনেট সংযোগ নেই: বিক্রয়টি সফলভাবে অফলাইনে ড্রাফট হিসেবে সংরক্ষিত হয়েছে! ইন্টারনেট সংযোগ চালু হওয়া মাত্রই সার্ভারের সাথে সিঙ্ক হবে।"
+      );
+      setTimeout(() => setSuccessMessage(null), 8000);
+
+      clearCart();
+      setMobileTab("CATALOG");
+    };
+
+    // If browser is actively offline, save directly without unnecessary fetch delay
+    if (!isOnline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      try {
+        await saveOfflineSale("ডিভাইস অফলাইনে রয়েছে");
+      } catch (err: any) {
+        setErrorMessage("অফলাইন ড্রাফট সংরক্ষণে ত্রুটি: " + (err.message || "Unknown error"));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       const idempotencyKey = crypto.randomUUID();
       const res = await fetch("/api/v1/sales", {
@@ -425,21 +613,12 @@ export function PosTerminal({
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.error?.code === "OFFLINE" || res.status === 503) {
+          await saveOfflineSale("সার্ভার অফলাইন রেসপন্স দিয়েছে");
+          return;
+        }
         throw new Error(data.error?.message || "Failed to process sale.");
       }
-
-      const snapshotItems = cart.map((it) => ({
-        id: it.product.id,
-        productName: it.product.name,
-        brand: it.product.brand,
-        quantity: it.quantity,
-        unitPrice: it.unitPrice,
-        subtotal: it.quantity * it.unitPrice,
-        serials: it.selectedSerialIds.map((sid) => {
-          const sn = it.product.serialNumbers?.find((s) => s.id === sid);
-          return sn?.imei1 || sn?.imei2 || sid;
-        }),
-      }));
 
       setCompletedInvoice({
         invoiceNumber: data.data?.invoiceNumber || `INV-${Date.now().toString().slice(-6)}`,
@@ -474,7 +653,23 @@ export function PosTerminal({
       clearCart();
       setMobileTab("CATALOG");
     } catch (err: any) {
-      setErrorMessage(err.message || "An error occurred during checkout.");
+      const isNetworkErr =
+        (typeof navigator !== "undefined" && !navigator.onLine) ||
+        err.message?.includes("fetch") ||
+        err.message?.includes("network") ||
+        err.message?.includes("Failed to fetch") ||
+        err.message?.includes("OFFLINE");
+
+      if (isNetworkErr) {
+        try {
+          await saveOfflineSale("নেটওয়ার্ক ড্রপ হওয়ায় অফলাইনে ড্রাফট হিসেবে সংরক্ষিত হয়েছে");
+          return;
+        } catch (dbErr: any) {
+          setErrorMessage("অফলাইন ড্রাফট সংরক্ষণে ব্যর্থ হয়েছে: " + dbErr.message);
+        }
+      } else {
+        setErrorMessage(err.message || "An error occurred during checkout.");
+      }
     } finally {
       setLoading(false);
     }
@@ -642,9 +837,19 @@ export function PosTerminal({
                 <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                   POS দ্রুত বিক্রয় ও ক্যাশ কাউন্টার
                 </h1>
-                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 shadow-xs">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-                  কাউন্টার ১ • লাইভ
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold shadow-xs ${
+                    isOnline
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
+                      : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      isOnline ? "bg-emerald-500 animate-ping" : "bg-amber-500"
+                    }`}
+                  />
+                  {isOnline ? "কাউন্টার ১ • লাইভ" : "কাউন্টার ১ • অফলাইন মোড (ড্রাফট সক্রিয়)"}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground font-medium">
@@ -762,9 +967,9 @@ export function PosTerminal({
               <button
                 type="button"
                 onClick={() => {
-                  if (products.length > 0) {
+                  if (productList.length > 0) {
                     // Simulate fast scanner finding a product
-                    const randomProd = products[Math.floor(Math.random() * products.length)];
+                    const randomProd = productList[Math.floor(Math.random() * productList.length)];
                     addToCart(randomProd);
                   }
                 }}
@@ -788,7 +993,7 @@ export function PosTerminal({
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>সব পণ্য ({products.length})</span>
+                <span>সব পণ্য ({productList.length})</span>
               </button>
 
               {categories.map((cat) => (
@@ -1373,6 +1578,13 @@ export function PosTerminal({
             <div className="p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
               <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="p-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>{successMessage}</span>
             </div>
           )}
 

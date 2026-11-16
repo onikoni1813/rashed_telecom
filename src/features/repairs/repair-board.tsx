@@ -39,6 +39,8 @@ import {
   Phone,
 } from "lucide-react";
 import { createCustomerAction } from "@/features/customers/customer-actions";
+import { queueOutboxItem } from "@/lib/offline/sync-engine";
+import { getOfflineDatabase } from "@/lib/offline/db";
 
 
 
@@ -245,6 +247,11 @@ export function RepairBoard({
   technicians,
   spareParts,
 }: RepairBoardProps) {
+  const [jobList, setJobList] = useState<SerializedJob[]>(jobs);
+  React.useEffect(() => {
+    setJobList(jobs);
+  }, [jobs]);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [activeJob, setActiveJob] = useState<SerializedJob | null>(null);
@@ -433,7 +440,7 @@ export function RepairBoard({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Filtered jobs
-  const filteredJobs = jobs.filter((job) => {
+  const filteredJobs = jobList.filter((job) => {
     const matchesSearch =
       search === "" ||
       job.jobNumber.toLowerCase().includes(search.toLowerCase()) ||
@@ -462,6 +469,120 @@ export function RepairBoard({
           : intakeLockNotes.trim() || null;
     }
 
+    const payload = {
+      shopId,
+      customerId: intakeCustomerId || null,
+      customerPhone: intakeCustomerPhone.trim() || null,
+      customerName: intakeCustomerName.trim() || null,
+      deviceBrand: intakeBrand.trim() || "অন্যান্য",
+      deviceModel: intakeModel.trim() || "সাধারণ মডেল",
+      deviceImei: intakeImei || null,
+      deviceColor: intakeColor || null,
+      intakeCondition: intakeCondition.trim() || "স্বাভাবিক / ব্যবহৃত",
+      accessoriesReceived: intakeAccessories || null,
+      reportedIssue: intakeIssue.trim() || "সমস্যা উল্লেখ নেই",
+      screenLockType: intakeLockType,
+      devicePasscode: passcode,
+      estimatedCost: intakeEstimatedCost ? Number(intakeEstimatedCost) : 0,
+      paidAmount: intakePaidAmount ? Number(intakePaidAmount) : 0,
+      paymentMethod: intakePaymentMethod,
+      promisedDate: intakePromisedDate ? new Date(intakePromisedDate).toISOString() : null,
+      assignedTechnicianId: intakeTechId || null,
+    };
+
+    const saveOfflineRepair = async (offlineReason?: string) => {
+      const offlineJobNumber = `REP-OFFLINE-${Date.now().toString().slice(-5)}`;
+      const outboxPayload = {
+        ...payload,
+        offlineJobNumber,
+        createdAt: new Date().toISOString(),
+      };
+
+      // 1. Add to Dexie sync outbox
+      await queueOutboxItem(shopId, "REPAIR", outboxPayload);
+
+      // 2. Add to Dexie draftRepairs
+      try {
+        const db = getOfflineDatabase();
+        await db.draftRepairs.add({
+          id: crypto.randomUUID(),
+          shopId,
+          customerName: intakeCustomerName.trim() || "গ্রাহক",
+          customerPhone: intakeCustomerPhone.trim() || "",
+          deviceBrand: intakeBrand.trim() || "অন্যান্য",
+          deviceModel: intakeModel.trim() || "সাধারণ মডেল",
+          reportedIssue: intakeIssue.trim() || "সমস্যা উল্লেখ নেই",
+          estimatedCost: intakeEstimatedCost ? Number(intakeEstimatedCost) : 0,
+          advancePaid: intakePaidAmount ? Number(intakePaidAmount) : 0,
+          status: "PENDING",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn("Could not save to db.draftRepairs:", e);
+      }
+
+      // 3. Prepend to jobList so technician sees it on the board immediately
+      const newLocalJob: SerializedJob = {
+        id: `offline-${Date.now()}`,
+        jobNumber: offlineJobNumber,
+        deviceBrand: payload.deviceBrand,
+        deviceModel: payload.deviceModel,
+        deviceImei: payload.deviceImei,
+        deviceColor: payload.deviceColor,
+        intakeCondition: payload.intakeCondition,
+        accessoriesReceived: payload.accessoriesReceived,
+        reportedIssue: payload.reportedIssue,
+        screenLockType: payload.screenLockType,
+        devicePasscode: payload.devicePasscode,
+        status: "RECEIVED",
+        estimatedCost: payload.estimatedCost,
+        labourCost: 0,
+        partsCost: 0,
+        totalAmount: payload.estimatedCost,
+        paidAmount: payload.paidAmount,
+        dueAmount: Math.max(0, payload.estimatedCost - payload.paidAmount),
+        paymentStatus:
+          payload.paidAmount >= payload.estimatedCost && payload.estimatedCost > 0
+            ? "PAID"
+            : payload.paidAmount > 0
+            ? "PARTIAL"
+            : "UNPAID",
+        promisedDate: payload.promisedDate,
+        deliveryDate: null,
+        createdAt: new Date().toISOString(),
+        customer: {
+          id: payload.customerId || "offline-cust",
+          name: payload.customerName || "ওয়াক-ইন গ্রাহক",
+          phone: payload.customerPhone || "01000000000",
+        },
+        assignedTechnician: intakeTechId
+          ? technicians.find((t) => t.id === intakeTechId) || null
+          : null,
+        diagnostics: [],
+        parts: [],
+        warranties: [],
+      };
+
+      setJobList((prev) => [newLocalJob, ...prev]);
+      setShowIntakeModal(false);
+      setSuccessMsg(
+        `ইন্টারনেট সংযোগ নেই: সার্ভিস জব (${offlineJobNumber}) অফলাইনে ড্রাফট হিসেবে সংরক্ষিত হয়েছে! ইন্টারনেট সংযোগ চালু হওয়া মাত্রই সার্ভারের সাথে সিঙ্ক হবে।`
+      );
+      setTimeout(() => setSuccessMsg(null), 8000);
+    };
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      try {
+        await saveOfflineRepair("ডিভাইস অফলাইনে রয়েছে");
+      } catch (err: any) {
+        setErrorMsg("অফলাইন সার্ভিস ড্রাফট সংরক্ষণে ত্রুটি: " + (err.message || "Unknown error"));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       const res = await fetch("/api/v1/service-jobs", {
         method: "POST",
@@ -470,35 +591,38 @@ export function RepairBoard({
           "Idempotency-Key": `job-intake-${Date.now()}`,
           "x-test-user-id": currentUserId,
         },
-        body: JSON.stringify({
-          shopId,
-          customerId: intakeCustomerId || null,
-          customerPhone: intakeCustomerPhone.trim() || null,
-          customerName: intakeCustomerName.trim() || null,
-          deviceBrand: intakeBrand.trim() || "অন্যান্য",
-          deviceModel: intakeModel.trim() || "সাধারণ মডেল",
-          deviceImei: intakeImei || null,
-          deviceColor: intakeColor || null,
-          intakeCondition: intakeCondition.trim() || "স্বাভাবিক / ব্যবহৃত",
-          accessoriesReceived: intakeAccessories || null,
-          reportedIssue: intakeIssue.trim() || null,
-          screenLockType: intakeLockType,
-          devicePasscode: passcode,
-          estimatedCost: intakeEstimatedCost ? Number(intakeEstimatedCost) : 0,
-          paidAmount: intakePaidAmount ? Number(intakePaidAmount) : 0,
-          paymentMethod: intakePaymentMethod,
-          promisedDate: intakePromisedDate ? new Date(intakePromisedDate).toISOString() : null,
-          assignedTechnicianId: intakeTechId || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || "সার্ভিস গ্রহণ ব্যর্থ হয়েছে");
+      if (!res.ok) {
+        if (data.error?.code === "OFFLINE" || res.status === 503) {
+          await saveOfflineRepair("সার্ভার অফলাইন রেসপন্স দিয়েছে");
+          return;
+        }
+        throw new Error(data.error?.message || "সার্ভিস গ্রহণ ব্যর্থ হয়েছে");
+      }
 
       setSuccessMsg(`সার্ভিস জব তৈরি সম্পন্ন! জব নং: ${data.data.jobNumber}`);
       setTimeout(() => window.location.reload(), 1200);
     } catch (err: any) {
-      setErrorMsg(err.message);
+      const isNetworkErr =
+        (typeof navigator !== "undefined" && !navigator.onLine) ||
+        err.message?.includes("fetch") ||
+        err.message?.includes("network") ||
+        err.message?.includes("Failed to fetch") ||
+        err.message?.includes("OFFLINE");
+
+      if (isNetworkErr) {
+        try {
+          await saveOfflineRepair("নেটওয়ার্ক ড্রপ হওয়ায় অফলাইনে ড্রাফট হিসেবে সংরক্ষিত হয়েছে");
+          return;
+        } catch (dbErr: any) {
+          setErrorMsg("অফলাইন ড্রাফট সংরক্ষণে ব্যর্থ হয়েছে: " + dbErr.message);
+        }
+      } else {
+        setErrorMsg(err.message);
+      }
     } finally {
       setLoading(false);
     }

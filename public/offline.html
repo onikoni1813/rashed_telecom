@@ -13,6 +13,7 @@
       --text: #f9fafb;
       --muted: #9ca3af;
       --primary: #3b82f6;
+      --emerald: #10b981;
       --warning: #f59e0b;
     }
     * {
@@ -33,16 +34,16 @@
     .card {
       background-color: var(--card);
       border: 1px solid var(--border);
-      border-radius: 1rem;
+      border-radius: 1.25rem;
       max-width: 32rem;
       width: 100%;
       padding: 2rem;
       text-align: center;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.6);
     }
     .badge-icon {
-      width: 4rem;
-      height: 4rem;
+      width: 4.5rem;
+      height: 4.5rem;
       border-radius: 9999px;
       background: rgba(245, 158, 11, 0.15);
       border: 1px solid rgba(245, 158, 11, 0.3);
@@ -51,76 +52,89 @@
       justify-content: center;
       margin: 0 auto 1.5rem auto;
       color: var(--warning);
-      font-size: 2rem;
+      font-size: 2.25rem;
     }
     h1 {
       font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
+      font-weight: 800;
+      margin-bottom: 0.25rem;
       letter-spacing: -0.025em;
     }
     h2 {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       color: var(--muted);
       font-weight: 500;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
     p {
       color: var(--muted);
       font-size: 0.875rem;
       line-height: 1.6;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
       text-align: left;
     }
     .info-box {
-      background: rgba(59, 130, 246, 0.08);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      border-radius: 0.75rem;
-      padding: 1rem;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 0.875rem;
+      padding: 1rem 1.25rem;
       text-align: left;
       font-size: 0.8125rem;
       margin-bottom: 1.5rem;
-      color: #93c5fd;
+      color: #6ee7b7;
     }
     .info-box strong {
       display: block;
-      color: #bfdbfe;
-      margin-bottom: 0.25rem;
+      color: #a7f3d0;
+      margin-bottom: 0.35rem;
+      font-size: 0.875rem;
     }
     .actions {
       display: flex;
+      flex-direction: column;
       gap: 0.75rem;
-      justify-content: center;
     }
-    button {
-      background-color: var(--primary);
+    .primary-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s;
+      text-decoration: none;
+      padding: 0.875rem 1.5rem;
+      border-radius: 0.75rem;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
+      transition: all 0.2s;
     }
-    button:hover {
-      opacity: 0.9;
+    .primary-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
     }
-    .home-link {
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .secondary-btn {
+      flex: 1;
       background: transparent;
-      color: var(--muted);
+      color: var(--text);
       border: 1px solid var(--border);
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      padding: 0.75rem 1.5rem;
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 500;
+      justify-content: center;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
     }
-    .home-link:hover {
+    .secondary-btn:hover {
       background: rgba(255, 255, 255, 0.05);
-      color: var(--text);
     }
   </style>
 </head>
@@ -131,17 +145,22 @@
     <h2>No Active Internet Connection Detected</h2>
 
     <p>
-      বর্তমানে আপনার ডিভাইসটি অফলাইনে রয়েছে। রাশেদ টেলিকম শপ ম্যানেজমেন্ট পিডব্লিউএ-এর ড্রাফট মোড সক্রিয় রয়েছে।
+      বর্তমানে আপনার ডিভাইসটি অফলাইনে রয়েছে। রাশেদ টেলিকম শপ ম্যানেজমেন্ট পিডব্লিউএ-এর <strong>অফলাইন ড্রাফট ইঞ্জিন সক্রিয় রয়েছে</strong>।
     </p>
 
     <div class="info-box">
-      <strong>নিরাপদ লোকাল ড্রাফট মেকানিজম (Local Drafts Safe):</strong>
-      আপনার সংরক্ষিত বিক্রয় ও সার্ভিসিং ড্রাফট ব্রাউজারের IndexedDB-তে সুরক্ষিত রয়েছে। ইন্টারনেট পুনঃসংযোগ হওয়া মাত্রই সিস্টেম স্বয়ংক্রিয়ভাবে সার্ভারের সাথে সিঙ্ক সম্পন্ন করবে।
+      <strong>✓ নিরাপদ অফলাইন ড্রাফট ইঞ্জিন (Local Drafts Active):</strong>
+      আপনি ইন্টারনেট ছাড়াই POS কাউন্টারে বিক্রি সম্পন্ন করতে পারেন। বিক্রয় ও সার্ভিসিং তথ্য ব্রাউজারের IndexedDB-তে সংরক্ষিত থাকবে এবং ইন্টারনেট পুনঃসংযোগ হওয়া মাত্রই স্বয়ংক্রিয়ভাবে সার্ভারের সাথে সিঙ্ক হবে।
     </div>
 
     <div class="actions">
-      <button onclick="window.location.reload()">পুনরায় চেষ্টা করুন (Retry)</button>
-      <a href="/app" class="home-link">ড্যাশবোর্ডে ফিরুন (Dashboard)</a>
+      <a href="/app/pos" class="primary-btn">
+        🛒 অফলাইন POS কাউন্টার খুলুন (Offline POS)
+      </a>
+      <div class="btn-row">
+        <a href="/app" class="secondary-btn">ড্যাশবোর্ড (Dashboard)</a>
+        <button onclick="window.location.reload()" class="secondary-btn">পুনরায় চেষ্টা করুন (Retry)</button>
+      </div>
     </div>
   </div>
 </body>
