@@ -17,7 +17,7 @@ import {
   Calendar,
   User,
 } from "lucide-react";
-import { CashMemo } from "./cash-memo";
+import { CashMemo, CashMemoShopSettings } from "./cash-memo";
 
 export interface SaleSummaryItem {
   id: string;
@@ -47,9 +47,10 @@ interface SalesListViewProps {
   sales: SaleSummaryItem[];
   shopId: string;
   locationId: string;
+  shopSettings?: CashMemoShopSettings;
 }
 
-export function SalesListView({ sales, shopId, locationId }: SalesListViewProps) {
+export function SalesListView({ sales, shopId, locationId, shopSettings }: SalesListViewProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selectedSale, setSelectedSale] = useState<SaleSummaryItem | null>(null);
@@ -586,6 +587,7 @@ export function SalesListView({ sales, shopId, locationId }: SalesListViewProps)
             paidAmount: selectedSale.paidAmount,
             dueAmount: selectedSale.dueAmount,
           }}
+          shopSettings={shopSettings}
           extraActions={
             <button
               type="button"

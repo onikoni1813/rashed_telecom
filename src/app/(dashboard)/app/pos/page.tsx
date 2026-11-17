@@ -26,8 +26,8 @@ async function PosDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
   const defaultCashierId = "00000000-0000-0000-0000-000000000001";
 
-  // Parallel fetch location, products, and customers
-  const [fetchedLocation, dbProducts, dbCustomers, fetchedActiveSession] = await Promise.all([
+  // Parallel fetch location, products, customers, active session, and shop settings
+  const [fetchedLocation, dbProducts, dbCustomers, fetchedActiveSession, shopRecord] = await Promise.all([
     prisma.location.findFirst({
       where: { shopId: defaultShopId },
     }),
@@ -69,6 +69,10 @@ async function PosDataLoader() {
         cashier: { select: { fullName: true } },
       },
       orderBy: { openingTime: "desc" },
+    }),
+    prisma.shop.findUnique({
+      where: { id: defaultShopId },
+      select: { name: true, settings: true },
     }),
   ]);
 
@@ -167,6 +171,17 @@ async function PosDataLoader() {
     totalDue: Number(c.totalDue),
   }));
 
+  const rawSettings = (shopRecord?.settings as Record<string, any>) || {};
+  const shopSettings = {
+    name: shopRecord?.name || "রাশেদ টেলিকম",
+    address: rawSettings.address || "কালিয়াকৈর বাজার, কালিয়াকৈর, গাজীপুর",
+    phone: rawSettings.phone || "01521378476",
+    email: rawSettings.email || "rashedsarkarofficial@gmail.com",
+    tagline: rawSettings.receiptHeader?.split("\n")[1] || "মোবাইল বিক্রয়, সার্ভিসিং ও আধুনিক এক্সেসরিজ",
+    receiptHeader: rawSettings.receiptHeader,
+    receiptFooter: rawSettings.receiptFooter,
+  };
+
   return (
     <div className="space-y-4">
       <PosTerminal
@@ -176,6 +191,7 @@ async function PosDataLoader() {
         products={products}
         customers={customers}
         initialCashDrawer={initialCashDrawer}
+        shopSettings={shopSettings}
       />
     </div>
   );

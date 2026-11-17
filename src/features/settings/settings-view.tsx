@@ -103,25 +103,36 @@ export function SettingsView({ shopId, initialSettings }: SettingsViewProps) {
   const [isSyncingOffline, setIsSyncingOffline] = useState(false);
   const [simulatedPrintSuccess, setSimulatedPrintSuccess] = useState(false);
 
-  // Check SW and Offline DB on mount
+  // Check SW and Offline DB on mount & sync initial settings to localStorage
   useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations().then((regs) => {
-        if (regs.length > 0) {
-          setSwStatus(`সক্রিয় (Active - ${regs.length} worker)`);
-        } else {
-          setSwStatus("নিবন্ধিত নয় (Standby)");
-        }
-      });
-
+    if (typeof window !== "undefined") {
       try {
-        const db = getOfflineDatabase();
-        db.syncOutbox.count().then((c) => setDexieOutboxCount(c));
-      } catch {
-        setDexieOutboxCount(0);
+        if (initialSettings?.settings) {
+          localStorage.setItem("shop_settings", JSON.stringify(initialSettings.settings));
+        }
+        if (initialSettings?.name) {
+          localStorage.setItem("shop_name", initialSettings.name);
+        }
+      } catch {}
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          if (regs.length > 0) {
+            setSwStatus(`সক্রিয় (Active - ${regs.length} worker)`);
+          } else {
+            setSwStatus("নিবন্ধিত নয় (Standby)");
+          }
+        });
+
+        try {
+          const db = getOfflineDatabase();
+          db.syncOutbox.count().then((c) => setDexieOutboxCount(c));
+        } catch {
+          setDexieOutboxCount(0);
+        }
       }
     }
-  }, []);
+  }, [initialSettings]);
 
   // Save changes
   const handleSaveSettings = async (e?: React.FormEvent) => {
@@ -163,6 +174,18 @@ export function SettingsView({ shopId, initialSettings }: SettingsViewProps) {
 
       if (!res.ok) {
         throw new Error(data.error?.message || "সেটিংস সংরক্ষণ করতে ব্যর্থ হয়েছে।");
+      }
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("shop_settings", JSON.stringify(payload.settings));
+          localStorage.setItem("shop_name", name);
+          window.dispatchEvent(
+            new CustomEvent("shop_settings_updated", {
+              detail: { name, settings: payload.settings },
+            })
+          );
+        } catch {}
       }
 
       setToast({

@@ -727,6 +727,7 @@ export function RepairBoard({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || "ডেলিভারি সম্পন্ন করা যায়নি");
 
+      setShowDeliverModal(false);
       setSuccessMsg("ডিভাইস সফলভাবে গ্রাহকের কাছে হস্তান্তর ও হিসাব সম্পন্ন হয়েছে!");
       setTimeout(() => window.location.reload(), 1200);
     } catch (err: any) {
@@ -1636,6 +1637,13 @@ export function RepairBoard({
               </button>
             </div>
 
+            {errorMsg && (
+              <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between">
+                <span>{errorMsg}</span>
+                <button type="button" onClick={() => setErrorMsg(null)} className="text-xs font-bold px-1.5 py-0.5 rounded hover:bg-rose-100 dark:hover:bg-rose-900/50">✕</button>
+              </div>
+            )}
+
             <form onSubmit={handleDiagSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block font-medium text-foreground mb-1">টেকনিক্যাল পর্যবেক্ষণ (Findings) *</label>
@@ -1724,6 +1732,13 @@ export function RepairBoard({
               </button>
             </div>
 
+            {errorMsg && (
+              <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between">
+                <span>{errorMsg}</span>
+                <button type="button" onClick={() => setErrorMsg(null)} className="text-xs font-bold px-1.5 py-0.5 rounded hover:bg-rose-100 dark:hover:bg-rose-900/50">✕</button>
+              </div>
+            )}
+
             <form onSubmit={handlePartsSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block font-medium text-foreground mb-1">মজুদ পার্টস নির্বাচন করুন *</label>
@@ -1808,6 +1823,13 @@ export function RepairBoard({
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between">
+                <span>{errorMsg}</span>
+                <button type="button" onClick={() => setErrorMsg(null)} className="text-xs font-bold px-1.5 py-0.5 rounded hover:bg-rose-100 dark:hover:bg-rose-900/50">✕</button>
+              </div>
+            )}
 
             <form onSubmit={handleDeliverSubmit} className="space-y-4 text-xs">
               <div className="p-3 bg-muted rounded-lg space-y-1.5">
@@ -1948,9 +1970,9 @@ export function RepairBoard({
             {/* Printable Area */}
             <div className="bg-white text-slate-900 p-5 rounded-xl border border-slate-200 text-xs font-mono space-y-3">
               <div className="text-center border-b border-dashed border-slate-300 pb-2">
-                <h2 className="text-base font-black tracking-wider text-slate-950">RASHED TELECOM</h2>
-                <p className="text-[11px] text-slate-600">Mobile Servicing & Hardware Repair</p>
-                <p className="text-[11px] text-slate-500">কালিয়াকৈর, গাজীপুর | হেল্পলাইন: 01712-000000</p>
+                <h2 className="text-base font-black tracking-wider text-slate-950">রাশেদ টেলিকম</h2>
+                <p className="text-[11px] text-slate-600">মোবাইল সার্ভিসিং ও হার্ডওয়্যার ল্যাব</p>
+                <p className="text-[11px] text-slate-500">কালিয়াকৈর বাজার, কালিয়াকৈর, গাজীপুর | হেল্পলাইন: 01521378476</p>
               </div>
 
               <div className="flex justify-between border-b border-dashed border-slate-300 pb-2">

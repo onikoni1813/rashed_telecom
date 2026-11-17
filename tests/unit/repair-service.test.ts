@@ -320,4 +320,64 @@ describe("Repair Servicing Domain Service (Phase 4)", () => {
     expect(prisma.serviceWarranty.create).toHaveBeenCalled();
     expect(prisma.journalEntry.create).toHaveBeenCalled();
   });
+
+  it("successfully delivers service job when full amount was paid in advance (0 paid now)", async () => {
+    vi.mocked(prisma.serviceJob.findUnique).mockResolvedValueOnce({
+      id: jobId,
+      shopId,
+      jobNumber: "JOB-000001",
+      status: "READY_FOR_DELIVERY",
+      totalAmount: 250 as any,
+      paidAmount: 250 as any, // 250 advance already paid at intake!
+      customer: { id: customerId, totalDue: 0 as any },
+    } as any);
+
+    vi.mocked(prisma.serviceWarranty.create).mockResolvedValueOnce({
+      id: "war-2",
+      warrantyDays: 30,
+    } as any);
+
+    vi.mocked(prisma.account.findMany).mockResolvedValueOnce([
+      { id: "acc-1000", code: "1000" },
+      { id: "acc-4100", code: "4100" },
+    ] as any);
+
+    vi.mocked(prisma.journalEntry.create).mockResolvedValueOnce({ id: "je-deliver-adv" } as any);
+
+    vi.mocked(prisma.serviceJob.update).mockResolvedValueOnce({
+      id: jobId,
+      status: "DELIVERED",
+      paidAmount: 250 as any,
+      dueAmount: 0 as any,
+      paymentStatus: "PAID",
+    } as any);
+
+    const delivered = await deliverServiceJob({
+      shopId,
+      jobId,
+      deliveredById: cashierId,
+      paymentMethod: "CASH",
+      paidAmount: 0, // 0 paid now because 250 advance was already paid
+      warrantyDays: 30,
+    });
+
+    expect(delivered.status).toBe("DELIVERED");
+    expect(delivered.paymentStatus).toBe("PAID");
+    expect(prisma.journalEntry.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lines: {
+            create: [
+              expect.objectContaining({
+                debit: expect.anything(),
+              }),
+              expect.objectContaining({
+                credit: expect.anything(),
+              }),
+            ],
+          },
+        }),
+      })
+    );
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { formatBDT, formatDateTimeDhaka, toBengaliNumerals } from "@/lib/i18n";
 import {
   Printer,
@@ -15,6 +15,12 @@ import {
   X,
   FileText,
   RotateCcw,
+  Share2,
+  MessageCircle,
+  Copy,
+  Check,
+  Send,
+  ExternalLink,
 } from "lucide-react";
 
 export interface InvoiceItem {
@@ -47,16 +53,72 @@ export interface InvoiceData {
   notes?: string | null;
 }
 
+export interface CashMemoShopSettings {
+  name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  tagline?: string;
+  receiptHeader?: string;
+  receiptFooter?: string;
+}
+
 interface CashMemoProps {
   invoice: InvoiceData;
   onClose?: () => void;
   onNewSale?: () => void;
   extraActions?: React.ReactNode;
   initialMode?: "thermal" | "standard";
+  shopSettings?: CashMemoShopSettings;
+}
+
+const DEFAULT_SHOP_INFO: CashMemoShopSettings = {
+  name: "রাশেদ টেলিকম",
+  tagline: "মোবাইল বিক্রয়, সার্ভিসিং ও আধুনিক এক্সেসরিজ",
+  address: "কালিয়াকৈর বাজার, কালিয়াকৈর, গাজীপুর",
+  phone: "01521378476",
+  email: "rashedsarkarofficial@gmail.com",
+};
+
+// Generate formatted invoice text for sharing
+export function generateInvoiceShareText(
+  invoice: InvoiceData,
+  shopInfo: CashMemoShopSettings,
+  targetPhone?: string
+): string {
+  const dateFormatted = formatDateTimeDhaka(new Date(invoice.createdAt));
+  const itemsList = invoice.items
+    .map((item, idx) => {
+      const itemLine = `${idx + 1}. ${item.productName} (${item.quantity} x ${formatBDT(item.unitPrice)}) = ${formatBDT(item.subtotal)}`;
+      const serialLine = item.serials && item.serials.length > 0 ? `\n   IMEI/Serial: ${item.serials.join(", ")}` : "";
+      return `${itemLine}${serialLine}`;
+    })
+    .join("\n");
+
+  const phone = targetPhone || invoice.customerPhone;
+
+  return `🧾 *${shopInfo.name || "রাশেদ টেলিকম"}*
+ক্যাশ মেমো / বিক্রয় রসিদ
+━━━━━━━━━━━━━━━━━━━━
+📄 মেমো নং: ${invoice.invoiceNumber}
+📅 তারিখ: ${dateFormatted}
+👤 গ্রাহক: ${invoice.customerName || "ওয়াক-ইন কাস্টমার"}
+${phone ? `📱 মোবাইল: ${phone}\n` : ""}${invoice.customerAddress ? `🏠 ঠিকানা: ${invoice.customerAddress}\n` : ""}━━━━━━━━━━━━━━━━━━━━
+📦 পণ্য বিবরণ:
+${itemsList}
+━━━━━━━━━━━━━━━━━━━━
+💵 উপমোট (Subtotal): ${formatBDT(invoice.subtotal)}
+${invoice.discount > 0 ? `🎁 ছাড় (Discount): -${formatBDT(invoice.discount)}\n` : ""}💰 সর্বমোট বিল (Net Total): ${formatBDT(invoice.totalAmount)}
+✅ পরিশোধিত (Paid): ${formatBDT(invoice.paidAmount)}
+${invoice.dueAmount > 0 ? `🔴 বকেয়া (Due): ${formatBDT(invoice.dueAmount)}\n` : ""}${invoice.changeDue !== undefined && invoice.changeDue > 0 ? `↩️ ফেরত (Change): ${formatBDT(invoice.changeDue)}\n` : ""}কথায়: ${numberToBengaliWords(invoice.totalAmount)}
+━━━━━━━━━━━━━━━━━━━━
+📍 ঠিকানা: ${shopInfo.address || "কালিয়াকৈর বাজার, কালিয়াকৈর, গাজীপুর"}
+📞 হেল্পলাইন: ${shopInfo.phone || "01521378476"}
+আমাদের সাথে থাকার জন্য ধন্যবাদ! আবার আসবেন।`;
 }
 
 // Helper to convert Bengali / English number to Bengali words for Cash Memo
-function numberToBengaliWords(amount: number): string {
+export function numberToBengaliWords(amount: number): string {
   const ones = [
     "", "এক", "দুই", "তিন", "চার", "পাঁচ", "ছয়", "সাত", "আট", "নয়", "দশ",
     "এগারো", "বারো", "তেরো", "চৌদ্দ", "পনেরো", "ষোলো", "সতেরো", "আঠারো", "উনিশ", "বিশ",
@@ -107,8 +169,90 @@ export function CashMemo({
   onNewSale,
   extraActions,
   initialMode = "thermal",
+  shopSettings,
 }: CashMemoProps) {
   const [printMode, setPrintMode] = useState<"thermal" | "standard">(initialMode);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [sharePhone, setSharePhone] = useState(invoice.customerPhone || "");
+  const [copied, setCopied] = useState(false);
+
+  // Dynamic shop info state (defaults to provided prop or fallback, synchronizes with settings/localStorage)
+  const [liveSettings, setLiveSettings] = useState<CashMemoShopSettings | null>(shopSettings || null);
+
+  useEffect(() => {
+    if (shopSettings) {
+      setLiveSettings(shopSettings);
+    } else {
+      // 1. Try reading cached settings from localStorage
+      try {
+        const cached = localStorage.getItem("shop_settings");
+        const cachedName = localStorage.getItem("shop_name");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setLiveSettings({
+            name: cachedName || DEFAULT_SHOP_INFO.name,
+            address: parsed.address || DEFAULT_SHOP_INFO.address,
+            phone: parsed.phone || DEFAULT_SHOP_INFO.phone,
+            email: parsed.email || DEFAULT_SHOP_INFO.email,
+            tagline: parsed.receiptHeader?.split("\n")[1] || DEFAULT_SHOP_INFO.tagline,
+            receiptHeader: parsed.receiptHeader,
+            receiptFooter: parsed.receiptFooter,
+          });
+        }
+      } catch { }
+
+      // 2. Fetch fresh shop settings from API
+      fetch("/api/v1/settings?shopId=11111111-1111-1111-1111-111111111111")
+        .then((res) => res.json())
+        .then((json) => {
+          if (json?.data) {
+            const data = json.data;
+            const s = data.settings || {};
+            setLiveSettings({
+              name: data.name || DEFAULT_SHOP_INFO.name,
+              address: s.address || DEFAULT_SHOP_INFO.address,
+              phone: s.phone || DEFAULT_SHOP_INFO.phone,
+              email: s.email || DEFAULT_SHOP_INFO.email,
+              tagline: s.receiptHeader?.split("\n")[1] || DEFAULT_SHOP_INFO.tagline,
+              receiptHeader: s.receiptHeader,
+              receiptFooter: s.receiptFooter,
+            });
+          }
+        })
+        .catch(() => { });
+    }
+
+    // 3. Listen to live updates whenever settings are saved in settings view
+    const handleSettingsUpdated = (e: any) => {
+      const detail = e.detail;
+      if (detail) {
+        setLiveSettings({
+          name: detail.name || DEFAULT_SHOP_INFO.name,
+          address: detail.settings?.address || DEFAULT_SHOP_INFO.address,
+          phone: detail.settings?.phone || DEFAULT_SHOP_INFO.phone,
+          email: detail.settings?.email || DEFAULT_SHOP_INFO.email,
+          tagline: detail.settings?.receiptHeader?.split("\n")[1] || DEFAULT_SHOP_INFO.tagline,
+          receiptHeader: detail.settings?.receiptHeader,
+          receiptFooter: detail.settings?.receiptFooter,
+        });
+      }
+    };
+
+    window.addEventListener("shop_settings_updated", handleSettingsUpdated);
+    return () => {
+      window.removeEventListener("shop_settings_updated", handleSettingsUpdated);
+    };
+  }, [shopSettings]);
+
+  // Resolved dynamic shop information
+  const activeShopInfo = {
+    name: liveSettings?.name || shopSettings?.name || DEFAULT_SHOP_INFO.name!,
+    tagline: liveSettings?.tagline || shopSettings?.tagline || DEFAULT_SHOP_INFO.tagline!,
+    address: liveSettings?.address || shopSettings?.address || DEFAULT_SHOP_INFO.address!,
+    phone: liveSettings?.phone || shopSettings?.phone || DEFAULT_SHOP_INFO.phone!,
+    email: liveSettings?.email || shopSettings?.email || DEFAULT_SHOP_INFO.email!,
+    receiptFooter: liveSettings?.receiptFooter || shopSettings?.receiptFooter,
+  };
 
   const handlePrint = () => {
     window.print();
@@ -131,20 +275,87 @@ export function CashMemo({
     }
   };
 
-  const shopInfo = {
-    nameBn: "রাশেদ টেলিকম",
-    nameEn: "RASHED TELECOM",
-    tagline: "মোবাইল বিক্রয়, সার্ভিসিং ও আধুনিক এক্সেসরিজ",
-    address: "কালিয়াকৈর বাজার, কালিয়াকৈর, গাজীপুর",
-    phone: "01521378476",
-    email: "rashedsarkarofficial@gmail.com",
+  // Generate formatted invoice text for sharing
+  const getShareText = () => generateInvoiceShareText(invoice, activeShopInfo, sharePhone);
+
+  // 1. WhatsApp Share
+  const handleWhatsAppShare = () => {
+    const text = getShareText();
+    const raw = (sharePhone || invoice.customerPhone || "").trim().replace(/[\s\-\(\)\+]/g, "");
+    let targetPhone = "";
+    if (raw) {
+      if (raw.startsWith("880")) {
+        targetPhone = raw;
+      } else if (raw.startsWith("01")) {
+        targetPhone = `88${raw}`;
+      } else if (raw.startsWith("1") && raw.length === 10) {
+        targetPhone = `880${raw}`;
+      } else {
+        targetPhone = raw;
+      }
+    }
+
+    const encodedText = encodeURIComponent(text);
+    const waUrl = targetPhone
+      ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodedText}`
+      : `https://api.whatsapp.com/send?text=${encodedText}`;
+
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
+
+  // 2. Native Share API (Android/iOS System Share Sheet)
+  const handleNativeShare = async () => {
+    const text = getShareText();
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${activeShopInfo.name} - মেমো ${invoice.invoiceNumber}`,
+          text: text,
+        });
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          handleCopy();
+        }
+      }
+    } else {
+      handleCopy();
+    }
+  };
+
+  // 3. Copy Memo Details to Clipboard
+  const handleCopy = async () => {
+    try {
+      const text = getShareText();
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      const textArea = document.createElement("textarea");
+      textArea.value = getShareText();
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
+  };
+
+  // 4. SMS Direct
+  const handleSmsShare = () => {
+    const text = getShareText();
+    const raw = (sharePhone || invoice.customerPhone || "").trim().replace(/[\s\-\(\)\+]/g, "");
+    const smsUrl = raw
+      ? `sms:${raw}?body=${encodeURIComponent(text)}`
+      : `sms:?body=${encodeURIComponent(text)}`;
+    window.location.href = smsUrl;
   };
 
   return (
     <div className="printable-modal-overlay fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       {/* Container wrapper */}
       <div className="w-full max-w-3xl bg-zinc-100 dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-300 dark:border-zinc-800 flex flex-col max-h-[96vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Top Control Bar (Screen Only - Hidden in Print) */}
         <div className="no-print bg-white dark:bg-zinc-950 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -158,22 +369,21 @@ export function CashMemo({
                   {invoice.invoiceNumber}
                 </span>
               </h2>
-              <p className="text-[11px] text-zinc-500">প্রিন্ট করার পূর্বে মেমোর প্রিভিউ যাচাই করুন</p>
+              <p className="text-[11px] text-zinc-500">প্রিন্ট অথবা শেয়ার করার পূর্বে মেমোর প্রিভিউ যাচাই করুন</p>
             </div>
           </div>
 
           {/* Mode Switcher & Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {/* Thermal vs A4 toggle */}
             <div className="inline-flex p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs">
               <button
                 type="button"
                 onClick={() => setPrintMode("thermal")}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
-                  printMode === "thermal"
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${printMode === "thermal"
                     ? "bg-white dark:bg-zinc-700 text-zinc-950 dark:text-white shadow-xs"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <Receipt className="w-3.5 h-3.5" />
                 <span>থার্মাল (80mm)</span>
@@ -181,11 +391,10 @@ export function CashMemo({
               <button
                 type="button"
                 onClick={() => setPrintMode("standard")}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
-                  printMode === "standard"
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${printMode === "standard"
                     ? "bg-white dark:bg-zinc-700 text-zinc-950 dark:text-white shadow-xs"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>ক্লাসিক মেমো (A4/A5)</span>
@@ -193,6 +402,17 @@ export function CashMemo({
             </div>
 
             {extraActions}
+
+            {/* Share Button */}
+            <button
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/25 active:scale-95 transition-all"
+              title="ইনভয়েস শেয়ার করুন (WhatsApp, SMS, কপি)"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>শেয়ার</span>
+            </button>
 
             {/* Print Button */}
             <button
@@ -230,30 +450,28 @@ export function CashMemo({
 
         {/* Scrollable Receipt Preview Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex justify-center bg-zinc-200/70 dark:bg-zinc-950/70">
-          
+
           {/* ============================================================ */}
           {/* THE PRINTABLE MEMO (Targeted by window.print via ID) */}
           {/* ============================================================ */}
           <div
             id="printable-memo"
-            className={`bg-white text-zinc-950 shadow-xl transition-all ${
-              printMode === "thermal"
+            className={`bg-white text-zinc-950 shadow-xl transition-all ${printMode === "thermal"
                 ? "print-mode-thermal w-full max-w-[340px] p-5 font-mono text-[11px] rounded-2xl border border-zinc-300"
                 : "print-mode-standard w-full max-w-2xl p-7 text-xs rounded-2xl border border-zinc-300"
-            }`}
+              }`}
           >
             {printMode === "thermal" ? (
               /* ======================================================= */
               /* LAYOUT 1: POS THERMAL RECEIPT (80mm)                    */
               /* ======================================================= */
               <div className="space-y-3 leading-relaxed">
-                {/* Header */}
+                {/* Header (Bangla Only, Dynamic Address & Phone from Settings) */}
                 <div className="text-center space-y-1 pb-3 border-b border-dashed border-zinc-400">
-                  <div className="text-base font-black uppercase tracking-wider">{shopInfo.nameBn}</div>
-                  <div className="text-[10px] font-bold text-zinc-600">{shopInfo.nameEn}</div>
-                  <div className="text-[10px] text-zinc-600">{shopInfo.tagline}</div>
-                  <div className="text-[9.5px] text-zinc-500">{shopInfo.address}</div>
-                  <div className="text-[9.5px] text-zinc-700 font-bold">ফোন: {shopInfo.phone}</div>
+                  <div className="text-base font-black tracking-wide text-zinc-950">{activeShopInfo.name}</div>
+                  <div className="text-[10px] text-zinc-600 font-medium">{activeShopInfo.tagline}</div>
+                  <div className="text-[9.5px] text-zinc-500 leading-snug">{activeShopInfo.address}</div>
+                  <div className="text-[9.5px] text-zinc-800 font-bold">ফোন: {activeShopInfo.phone}</div>
                 </div>
 
                 {/* Receipt Title & Meta */}
@@ -407,22 +625,19 @@ export function CashMemo({
               /* LAYOUT 2: CLASSIC A4 / A5 PAD INVOICE MEMO             */
               /* ======================================================= */
               <div className="space-y-5 leading-normal">
-                {/* Header Pad */}
+                {/* Header Pad (Bangla Only, Dynamic Address from Settings) */}
                 <div className="flex items-start justify-between border-b-2 border-zinc-900 pb-4">
                   <div className="space-y-1">
                     <div className="inline-block px-2.5 py-0.5 rounded bg-zinc-950 text-white text-[10px] font-bold tracking-widest uppercase mb-1">
                       মোবাইল ও এক্সেসরিজ ক্যাশ মেমো
                     </div>
                     <h1 className="text-2xl font-black text-zinc-950 tracking-tight">
-                      {shopInfo.nameBn}
+                      {activeShopInfo.name}
                     </h1>
-                    <div className="text-xs font-bold text-zinc-700 tracking-wide uppercase">
-                      {shopInfo.nameEn}
-                    </div>
-                    <p className="text-[11px] text-zinc-600">{shopInfo.tagline}</p>
-                    <p className="text-[11px] text-zinc-500">{shopInfo.address}</p>
+                    <p className="text-[11px] text-zinc-600 font-medium">{activeShopInfo.tagline}</p>
+                    <p className="text-[11px] text-zinc-500">{activeShopInfo.address}</p>
                     <p className="text-[11px] font-semibold text-zinc-800">
-                      📞 হেল্পলাইন: {shopInfo.phone} | ✉️ {shopInfo.email}
+                      📞 হেল্পলাইন: {activeShopInfo.phone}{activeShopInfo.email ? ` | ✉️ ${activeShopInfo.email}` : ""}
                     </p>
                   </div>
 
@@ -438,11 +653,10 @@ export function CashMemo({
                       তারিখ: {formatDateTimeDhaka(new Date(invoice.createdAt))}
                     </div>
                     <div className="pt-1">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                        invoice.dueAmount <= 0
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase ${invoice.dueAmount <= 0
                           ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                           : "bg-rose-100 text-rose-800 border border-rose-300"
-                      }`}>
+                        }`}>
                         {invoice.dueAmount <= 0 ? "পরিশোধিত (PAID)" : "বকেয়া (DUE)"}
                       </span>
                     </div>
@@ -476,7 +690,7 @@ export function CashMemo({
                         বিক্রয় কেন্দ্র ও প্রতিনিধি
                       </div>
                       <div className="font-semibold text-zinc-900">
-                        রাশেদ টেলিকম শোরুম
+                        {activeShopInfo.name} শোরুম
                       </div>
                       <div className="text-zinc-600">
                         ক্যাশিয়ার: {invoice.cashierName || "অ্যাডমিন"}
@@ -604,8 +818,8 @@ export function CashMemo({
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-[10px] text-zinc-400 font-mono tracking-widest uppercase mb-1">
-                      {shopInfo.nameEn}
+                    <div className="text-[11px] font-bold text-zinc-800 mb-1">
+                      {activeShopInfo.name}
                     </div>
                     <div className="text-center w-44">
                       <div className="border-t border-dashed border-zinc-400 pt-1.5 font-bold text-zinc-900">
@@ -626,18 +840,204 @@ export function CashMemo({
             <span>প্রিন্ট শর্টকাট: <kbd className="font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border text-[10px]">Ctrl + P</kbd></span>
           </div>
           <div className="flex items-center gap-3">
-            <span>থার্মাল বা নরমাল প্রিন্টারে সরাসরি ব্যবহারের উপযোগী</span>
+            <button
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>ইনভয়েস শেয়ার করুন</span>
+            </button>
+            <span className="text-zinc-300 dark:text-zinc-700">•</span>
             <button
               type="button"
               onClick={handlePrint}
-              className="text-primary font-bold hover:underline"
+              className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1"
             >
-              এখনই প্রিন্ট করুন
+              <Printer className="w-3.5 h-3.5" />
+              <span>এখনই প্রিন্ট করুন</span>
             </button>
           </div>
         </div>
 
       </div>
+
+      {/* ============================================================ */}
+      {/* 5. INVOICE SHARE MODAL DIALOG                                */}
+      {/* ============================================================ */}
+      {isShareModalOpen && (
+        <div className="no-print fixed inset-0 z-60 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-2xl border border-zinc-300 dark:border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-950">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <Share2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base text-zinc-950 dark:text-white flex items-center gap-2">
+                    <span>ইনভয়েস শেয়ার করুন</span>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 font-bold">
+                      {invoice.invoiceNumber}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-zinc-500">গ্রাহকের হোয়াটসঅ্যাপ, মেসেজ বা অন্যান্য মাধ্যমে মেমো পাঠান</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShareModalOpen(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                title="বন্ধ করুন"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4 overflow-y-auto text-xs">
+              {/* Customer Phone Input */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+                  <span>গ্রাহকের ফোন / হোয়াটসঅ্যাপ নম্বর:</span>
+                  <span className="text-[10px] text-zinc-500">পরিবর্তনযোগ্য</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={sharePhone}
+                    onChange={(e) => setSharePhone(e.target.value)}
+                    placeholder="017XXXXXXXX"
+                    className="w-full px-3.5 py-2.5 pl-9 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 text-zinc-900 dark:text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <Phone className="w-4 h-4 text-zinc-400 absolute left-3 top-3 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Share Options Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {/* 1. WhatsApp Direct */}
+                <button
+                  type="button"
+                  onClick={handleWhatsAppShare}
+                  className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-left transition-all group flex items-start gap-3 active:scale-98"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <MessageCircle className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-emerald-950 dark:text-emerald-200 text-xs flex items-center gap-1">
+                      <span>হোয়াটসঅ্যাপ (WhatsApp)</span>
+                      <ExternalLink className="w-3 h-3 opacity-60" />
+                    </p>
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5 leading-snug">
+                      সরাসরি কাস্টমারের চ্যাটে মেমো পাঠান
+                    </p>
+                  </div>
+                </button>
+
+                {/* 2. Native Share / Other Apps */}
+                <button
+                  type="button"
+                  onClick={handleNativeShare}
+                  className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 text-left transition-all group flex items-start gap-3 active:scale-98"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <Share2 className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-blue-950 dark:text-blue-200 text-xs">
+                      ডিভাইস শেয়ার (Share Sheet)
+                    </p>
+                    <p className="text-[11px] text-blue-700 dark:text-blue-400 mt-0.5 leading-snug">
+                      মেসেঞ্জার, টেলিগ্রাম, ব্লুটুথ ইত্যাদি
+                    </p>
+                  </div>
+                </button>
+
+                {/* 3. Copy Text */}
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className={`p-3.5 rounded-xl border text-left transition-all group flex items-start gap-3 active:scale-98 ${copied
+                      ? "border-emerald-500 bg-emerald-500/15 text-emerald-900 dark:text-emerald-100"
+                      : "border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-750"
+                    }`}
+                >
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform ${copied
+                        ? "bg-emerald-600 text-white"
+                        : "bg-zinc-800 dark:bg-zinc-700 text-white group-hover:scale-105"
+                      }`}
+                  >
+                    {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-zinc-900 dark:text-zinc-100 text-xs">
+                      {copied ? "কপি সম্পন্ন হয়েছে!" : "মেমোর টেক্সট কপি"}
+                    </p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5 leading-snug">
+                      {copied ? "ক্লিপবোর্ডে কপি করা হয়েছে" : "কপি করে যেকোনো জায়গায় পেস্ট করুন"}
+                    </p>
+                  </div>
+                </button>
+
+                {/* 4. SMS Direct */}
+                <button
+                  type="button"
+                  onClick={handleSmsShare}
+                  className="p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 text-left transition-all group flex items-start gap-3 active:scale-98"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <Send className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-indigo-950 dark:text-indigo-200 text-xs">
+                      এসএমএস (SMS) পাঠান
+                    </p>
+                    <p className="text-[11px] text-indigo-700 dark:text-indigo-400 mt-0.5 leading-snug">
+                      মোবাইলের সাধারণ মেসেজ আকারে
+                    </p>
+                  </div>
+                </button>
+              </div>
+
+              {/* Message Live Preview (Collapsible Box) */}
+              <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between text-zinc-600 dark:text-zinc-400 font-semibold text-[11px]">
+                  <span>শেয়ারকৃত বার্তার প্রিভিউ (Message Preview):</span>
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    className="text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1"
+                  >
+                    {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    <span>{copied ? "কপি হয়েছে" : "কপি"}</span>
+                  </button>
+                </div>
+                <div className="p-3 bg-zinc-100 dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 max-h-44 overflow-y-auto font-mono text-[11px] whitespace-pre-wrap leading-relaxed text-zinc-800 dark:text-zinc-200 select-all">
+                  {getShareText()}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-between">
+              <span className="text-[11px] text-zinc-500">
+                গ্রাহককে ডিজিটাল মেমো পৌঁছে দেওয়ার নিরাপদ মাধ্যম
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsShareModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold text-xs transition-colors"
+              >
+                বন্ধ করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

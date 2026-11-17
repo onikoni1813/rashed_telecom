@@ -38,7 +38,7 @@ import {
   Info,
 } from "lucide-react";
 import { createCustomerAction } from "@/features/customers/customer-actions";
-import { CashMemo, InvoiceData } from "./cash-memo";
+import { CashMemo, InvoiceData, CashMemoShopSettings } from "./cash-memo";
 import { queueOutboxItem } from "@/lib/offline/sync-engine";
 import { getOfflineDatabase } from "@/lib/offline/db";
 
@@ -86,6 +86,7 @@ interface PosTerminalProps {
   products: ProductItem[];
   customers: CustomerItem[];
   initialCashDrawer?: CashDrawerData;
+  shopSettings?: CashMemoShopSettings;
 }
 
 export function PosTerminal({
@@ -95,6 +96,7 @@ export function PosTerminal({
   products,
   customers,
   initialCashDrawer,
+  shopSettings,
 }: PosTerminalProps) {
   const [cashDrawer, setCashDrawer] = useState<CashDrawerData>(
     initialCashDrawer || {
@@ -1685,6 +1687,7 @@ export function PosTerminal({
       {completedInvoice && (
         <CashMemo
           invoice={completedInvoice}
+          shopSettings={shopSettings}
           onClose={() => setCompletedInvoice(null)}
           onNewSale={() => setCompletedInvoice(null)}
         />

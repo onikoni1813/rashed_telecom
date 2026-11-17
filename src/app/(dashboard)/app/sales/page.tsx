@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 async function SalesDataLoader() {
   const defaultShopId = "11111111-1111-1111-1111-111111111111";
 
-  const [fetchedLocation, rawSales] = await Promise.all([
+  const [fetchedLocation, rawSales, shopRecord] = await Promise.all([
     prisma.location.findFirst({
       where: { shopId: defaultShopId },
     }),
@@ -30,6 +30,10 @@ async function SalesDataLoader() {
       },
       orderBy: { createdAt: "desc" },
       take: 100,
+    }),
+    prisma.shop.findUnique({
+      where: { id: defaultShopId },
+      select: { name: true, settings: true },
     }),
   ]);
 
@@ -133,7 +137,27 @@ async function SalesDataLoader() {
       </div>
 
       {/* Sales List Table */}
-      <SalesListView sales={sales} shopId={defaultShopId} locationId={location.id} />
+      {(() => {
+        const rawSettings = (shopRecord?.settings as Record<string, any>) || {};
+        const shopSettings = {
+          name: shopRecord?.name || "রাশেদ টেলিকম",
+          address: rawSettings.address || "কালিয়াকৈর বাজার, কালিয়াকৈর, গাজীপুর",
+          phone: rawSettings.phone || "01521378476",
+          email: rawSettings.email || "rashedsarkarofficial@gmail.com",
+          tagline: rawSettings.receiptHeader?.split("\n")[1] || "মোবাইল বিক্রয়, সার্ভিসিং ও আধুনিক এক্সেসরিজ",
+          receiptHeader: rawSettings.receiptHeader,
+          receiptFooter: rawSettings.receiptFooter,
+        };
+
+        return (
+          <SalesListView
+            sales={sales}
+            shopId={defaultShopId}
+            locationId={location.id}
+            shopSettings={shopSettings}
+          />
+        );
+      })()}
     </div>
   );
 }

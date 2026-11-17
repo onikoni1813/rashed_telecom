@@ -595,7 +595,8 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
 
     const totalAmount = Number(job.totalAmount);
     const previouslyPaid = Number(job.paidAmount || 0);
-    const amountPaidNow = Number(input.paidAmount || 0);
+    const maxPayable = Math.max(0, totalAmount - previouslyPaid);
+    const amountPaidNow = Math.min(maxPayable, Math.max(0, Number(input.paidAmount || 0)));
     const newTotalPaid = previouslyPaid + amountPaidNow;
     const dueAmount = Math.max(0, totalAmount - newTotalPaid);
 
@@ -651,6 +652,16 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
     if (totalAmount > 0) {
       const journalLines: Array<{ accountCode: string; debit?: number; credit?: number; description?: string }> = [];
 
+      // Advance paid previously at intake
+      if (previouslyPaid > 0) {
+        journalLines.push({
+          accountCode: "1000",
+          debit: previouslyPaid,
+          description: `Advance received at intake for repair ${job.jobNumber}`,
+        });
+      }
+
+      // Paid now at delivery
       if (amountPaidNow > 0) {
         if (input.paymentMethod === "CASH") {
           journalLines.push({
@@ -667,6 +678,7 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
         }
       }
 
+      // Customer remaining receivable due balance
       if (dueAmount > 0) {
         journalLines.push({
           accountCode: "1100", // Accounts Receivable
@@ -675,6 +687,7 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
         });
       }
 
+      // Service revenue
       journalLines.push({
         accountCode: "4100", // Service Revenue
         credit: totalAmount,
