@@ -33,6 +33,7 @@ export interface CreateServiceJobInput {
   screenLockType?: string | null;
   devicePasscode?: string | null;
   estimatedCost?: number | string | Prisma.Decimal | null;
+  discount?: number | string | Prisma.Decimal | null;
   paidAmount?: number | string | Prisma.Decimal | null;
   paymentMethod?: "CASH" | "BANK" | "BKASH" | "NAGAD" | null;
   promisedDate?: Date | null;
@@ -47,10 +48,12 @@ export async function createServiceJob(input: CreateServiceJobInput) {
   const intakeCondition = input.intakeCondition?.trim() || "স্বাভাবিক / ব্যবহৃত";
 
   const estimatedCost = Number(input.estimatedCost || 0);
+  const discount = Math.max(0, Number(input.discount || 0));
+  const netTotal = Math.max(0, estimatedCost - discount);
   const paidAmount = Number(input.paidAmount || 0);
-  const dueAmount = Math.max(0, estimatedCost - paidAmount);
+  const dueAmount = Math.max(0, netTotal - paidAmount);
   const paymentStatus =
-    paidAmount >= estimatedCost && estimatedCost > 0
+    paidAmount >= netTotal && netTotal > 0
       ? "PAID"
       : paidAmount > 0
         ? "PARTIALLY_PAID"
@@ -132,7 +135,7 @@ export async function createServiceJob(input: CreateServiceJobInput) {
         screenLockType: input.screenLockType || "NONE",
         devicePasscode: input.devicePasscode || null,
         estimatedCost: new Prisma.Decimal(estimatedCost),
-        totalAmount: new Prisma.Decimal(estimatedCost),
+        totalAmount: new Prisma.Decimal(netTotal),
         paidAmount: new Prisma.Decimal(paidAmount),
         dueAmount: new Prisma.Decimal(dueAmount),
         paymentStatus,
@@ -140,7 +143,9 @@ export async function createServiceJob(input: CreateServiceJobInput) {
         assignedTechnicianId: input.assignedTechnicianId || null,
         intakeCashierId: input.intakeCashierId,
         promisedDate: input.promisedDate || null,
-        notes: input.notes || null,
+        notes: discount > 0
+          ? (input.notes ? `${input.notes} [ছাড়: ৳${discount}]` : `ছাড়: ৳${discount}`)
+          : (input.notes || null),
         statusHistory: {
           create: {
             fromStatus: "INTAKE",
@@ -568,6 +573,7 @@ export interface DeliverServiceJobInput {
   deliveredById: string;
   paymentMethod: "CASH" | "BANK" | "BKASH" | "NAGAD" | "ROCKET";
   paidAmount: number;
+  discount?: number;
   warrantyDays?: number;
   warrantyTerms?: string;
   notes?: string | null;
@@ -593,7 +599,9 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
       throw new ValidationError(`Job ${job.jobNumber} has already been delivered.`);
     }
 
-    const totalAmount = Number(job.totalAmount);
+    const grossAmount = Number(job.totalAmount);
+    const deliveryDiscount = Math.max(0, Math.min(grossAmount, Number(input.discount || 0)));
+    const totalAmount = Math.max(0, grossAmount - deliveryDiscount);
     const previouslyPaid = Number(job.paidAmount || 0);
     const maxPayable = Math.max(0, totalAmount - previouslyPaid);
     const amountPaidNow = Math.min(maxPayable, Math.max(0, Number(input.paidAmount || 0)));
@@ -712,10 +720,13 @@ export async function deliverServiceJob(input: DeliverServiceJobInput) {
       data: {
         status: "DELIVERED",
         deliveryDate: new Date(),
+        totalAmount: new Prisma.Decimal(totalAmount),
         paidAmount: new Prisma.Decimal(newTotalPaid),
         dueAmount: new Prisma.Decimal(dueAmount),
         paymentStatus,
-        notes: input.notes || job.notes,
+        notes: deliveryDiscount > 0
+          ? (job.notes ? `${job.notes} [ডেলিভারি ছাড়: ৳${deliveryDiscount}]` : `ডেলিভারি ছাড়: ৳${deliveryDiscount}`)
+          : (input.notes || job.notes),
         statusHistory: {
           create: {
             fromStatus: job.status,

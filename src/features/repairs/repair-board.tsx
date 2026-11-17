@@ -371,6 +371,7 @@ export function RepairBoard({
 
   // Billing & Screen Lock in Intake
   const [intakeEstimatedCost, setIntakeEstimatedCost] = useState<number | string>("");
+  const [intakeDiscount, setIntakeDiscount] = useState<number | string>("0");
   const [intakePaidAmount, setIntakePaidAmount] = useState<number | string>("");
   const [intakePaymentMethod, setIntakePaymentMethod] = useState<"CASH" | "BANK" | "BKASH" | "NAGAD">("CASH");
   const [intakeLockType, setIntakeLockType] = useState<"NONE" | "PIN" | "PATTERN">("NONE");
@@ -394,6 +395,7 @@ export function RepairBoard({
     setIntakeAccessories("");
     setIntakeIssue("");
     setIntakeEstimatedCost("");
+    setIntakeDiscount("0");
     setIntakePaidAmount("");
     setIntakeLockType("NONE");
     setIntakeLockPin("");
@@ -408,6 +410,7 @@ export function RepairBoard({
     setSelectedQuickService(preset.id);
     setIntakeIssue(preset.defaultIssue);
     setIntakeEstimatedCost(preset.estimatedPrice);
+    setIntakeDiscount("0");
     if (!intakeCondition.trim()) {
       setIntakeCondition(preset.description);
     }
@@ -432,6 +435,7 @@ export function RepairBoard({
 
   // Deliver Form
   const [deliverMethod, setDeliverMethod] = useState<"CASH" | "BANK" | "BKASH" | "NAGAD">("CASH");
+  const [deliverDiscount, setDeliverDiscount] = useState(0);
   const [deliverPaidAmount, setDeliverPaidAmount] = useState(0);
   const [deliverWarrantyDays, setDeliverWarrantyDays] = useState(30);
 
@@ -469,6 +473,11 @@ export function RepairBoard({
           : intakeLockNotes.trim() || null;
     }
 
+    const grossCost = intakeEstimatedCost ? Number(intakeEstimatedCost) : 0;
+    const discountAmt = intakeDiscount ? Number(intakeDiscount) : 0;
+    const netTotal = Math.max(0, grossCost - discountAmt);
+    const paidAmt = intakePaidAmount ? Number(intakePaidAmount) : 0;
+
     const payload = {
       shopId,
       customerId: intakeCustomerId || null,
@@ -483,8 +492,9 @@ export function RepairBoard({
       reportedIssue: intakeIssue.trim() || "সমস্যা উল্লেখ নেই",
       screenLockType: intakeLockType,
       devicePasscode: passcode,
-      estimatedCost: intakeEstimatedCost ? Number(intakeEstimatedCost) : 0,
-      paidAmount: intakePaidAmount ? Number(intakePaidAmount) : 0,
+      estimatedCost: grossCost,
+      discount: discountAmt,
+      paidAmount: paidAmt,
       paymentMethod: intakePaymentMethod,
       promisedDate: intakePromisedDate ? new Date(intakePromisedDate).toISOString() : null,
       assignedTechnicianId: intakeTechId || null,
@@ -539,11 +549,11 @@ export function RepairBoard({
         estimatedCost: payload.estimatedCost,
         labourCost: 0,
         partsCost: 0,
-        totalAmount: payload.estimatedCost,
+        totalAmount: netTotal,
         paidAmount: payload.paidAmount,
-        dueAmount: Math.max(0, payload.estimatedCost - payload.paidAmount),
+        dueAmount: Math.max(0, netTotal - payload.paidAmount),
         paymentStatus:
-          payload.paidAmount >= payload.estimatedCost && payload.estimatedCost > 0
+          payload.paidAmount >= netTotal && netTotal > 0
             ? "PAID"
             : payload.paidAmount > 0
             ? "PARTIAL"
@@ -720,6 +730,7 @@ export function RepairBoard({
           shopId,
           paymentMethod: deliverMethod,
           paidAmount: deliverPaidAmount,
+          discount: deliverDiscount,
           warrantyDays: deliverWarrantyDays,
         }),
       });
@@ -957,6 +968,11 @@ export function RepairBoard({
                         <div className="font-bold text-foreground">
                           {formatBDT(job.totalAmount > 0 ? job.totalAmount : job.estimatedCost)}
                         </div>
+                        {Number(job.estimatedCost) > Number(job.totalAmount) && (
+                          <div className="text-[10px] text-rose-600 font-semibold">
+                            ছাড়: -{formatBDT(Number(job.estimatedCost) - Number(job.totalAmount))}
+                          </div>
+                        )}
                         {job.paidAmount > 0 && (
                           <div className="text-[11px] text-emerald-600 font-medium">
                             জমা: {formatBDT(job.paidAmount)}
@@ -1020,6 +1036,7 @@ export function RepairBoard({
                               type="button"
                               onClick={() => {
                                 setActiveJob(job);
+                                setDeliverDiscount(0);
                                 const remainingToPay = Math.max(0, job.totalAmount - job.paidAmount);
                                 setDeliverPaidAmount(remainingToPay);
                                 setShowDeliverModal(true);
@@ -1464,9 +1481,9 @@ export function RepairBoard({
                     <span>সার্ভিসিং বিল ও বাকি হিসাব (Billing & Due)</span>
                   </div>
                   <div className="text-xs font-bold">
-                    {Number(intakeEstimatedCost || 0) - Number(intakePaidAmount || 0) > 0 ? (
+                    {Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakeDiscount || 0)) - Number(intakePaidAmount || 0) > 0 ? (
                       <span className="text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
-                        বাকি বিল: {formatBDT(Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakePaidAmount || 0)))}
+                        বাকি বিল: {formatBDT(Math.max(0, Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakeDiscount || 0)) - Number(intakePaidAmount || 0)))}
                       </span>
                     ) : Number(intakeEstimatedCost || 0) > 0 ? (
                       <span className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
@@ -1476,9 +1493,9 @@ export function RepairBoard({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div>
-                    <label className="block font-medium text-foreground mb-1">মোট সার্ভিস বিল (৳)</label>
+                    <label className="block font-medium text-foreground mb-1 text-xs">মোট সার্ভিস ফি (৳)</label>
                     <input
                       type="number"
                       min="0"
@@ -1489,7 +1506,18 @@ export function RepairBoard({
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-foreground mb-1">অগ্রিম জমা (Advance ৳)</label>
+                    <label className="block font-medium text-rose-600 dark:text-rose-400 mb-1 text-xs">ছাড় / ডিসকাউন্ট (৳)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={intakeDiscount}
+                      onChange={(e) => setIntakeDiscount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full p-2.5 rounded-lg border border-rose-300 dark:border-rose-800 bg-background text-rose-600 dark:text-rose-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-foreground mb-1 text-xs">অগ্রিম জমা (Advance ৳)</label>
                     <input
                       type="number"
                       min="0"
@@ -1500,22 +1528,37 @@ export function RepairBoard({
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-foreground mb-1">
+                    <label className="block font-medium text-foreground mb-1 text-xs">
                       বাকি বিল (Due Bill ৳)
                     </label>
                     <input
                       type="number"
                       min="0"
-                      value={Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakePaidAmount || 0))}
+                      value={Math.max(
+                        0,
+                        Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakeDiscount || 0)) -
+                          Number(intakePaidAmount || 0)
+                      )}
                       onChange={(e) => {
                         const due = Math.max(0, Number(e.target.value || 0));
-                        const cost = Number(intakeEstimatedCost || 0);
-                        setIntakePaidAmount(Math.max(0, cost - due).toString());
+                        const netTotal = Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakeDiscount || 0));
+                        setIntakePaidAmount(Math.max(0, netTotal - due).toString());
                       }}
                       className="w-full p-2.5 rounded-lg border bg-background text-foreground font-bold text-rose-600 dark:text-rose-400"
                     />
                   </div>
                 </div>
+
+                {Number(intakeDiscount || 0) > 0 && (
+                  <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs">
+                    <span className="text-muted-foreground font-medium">
+                      মূল বিল: <span className="line-through">{formatBDT(Number(intakeEstimatedCost || 0))}</span> • ছাড়: <span className="text-rose-600 font-bold">-{formatBDT(Number(intakeDiscount || 0))}</span>
+                    </span>
+                    <span className="font-bold text-foreground">
+                      ছাড়ের পর নিট বিল: <span className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">{formatBDT(Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakeDiscount || 0)))}</span>
+                    </span>
+                  </div>
+                )}
 
                 {/* Quick Due Setup Buttons */}
                 <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-emerald-500/20">
@@ -1529,7 +1572,10 @@ export function RepairBoard({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIntakePaidAmount(intakeEstimatedCost ? intakeEstimatedCost.toString() : "0")}
+                    onClick={() => {
+                      const net = Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakeDiscount || 0));
+                      setIntakePaidAmount(net.toString());
+                    }}
                     className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 transition-all active:scale-95"
                   >
                     ফুল পেইড (বাকি নেই)
@@ -1537,7 +1583,10 @@ export function RepairBoard({
                   {Number(intakeEstimatedCost) > 0 && (
                     <button
                       type="button"
-                      onClick={() => setIntakePaidAmount(Math.round(Number(intakeEstimatedCost) / 2).toString())}
+                      onClick={() => {
+                        const net = Math.max(0, Number(intakeEstimatedCost || 0) - Number(intakeDiscount || 0));
+                        setIntakePaidAmount(Math.round(net / 2).toString());
+                      }}
                       className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 transition-all active:scale-95"
                     >
                       ৫০% জমা (বাকি ৫০%)
@@ -1859,26 +1908,51 @@ export function RepairBoard({
                     <span>- {formatBDT(activeJob.paidAmount)}</span>
                   </div>
                 )}
+                {deliverDiscount > 0 && (
+                  <div className="flex justify-between text-xs text-rose-600 font-semibold">
+                    <span>ডেলিভারি বিশেষ ছাড়:</span>
+                    <span>- {formatBDT(deliverDiscount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-sm text-foreground pt-1 border-t border-dashed">
                   <span>এখন প্রদেয় বাকি বিল (Net Due):</span>
                   <span className="text-amber-600 dark:text-amber-400">
-                    {formatBDT(Math.max(0, activeJob.totalAmount - activeJob.paidAmount))}
+                    {formatBDT(Math.max(0, activeJob.totalAmount - deliverDiscount - activeJob.paidAmount))}
                   </span>
                 </div>
               </div>
 
-              <div>
-                <label className="block font-medium text-foreground mb-1">পেমেন্ট মেথড *</label>
-                <select
-                  value={deliverMethod}
-                  onChange={(e) => setDeliverMethod(e.target.value as any)}
-                  className="w-full p-2.5 rounded-lg border bg-background text-foreground"
-                >
-                  <option value="CASH">ক্যাশ (Cash)</option>
-                  <option value="BKASH">বিকাশ (bKash)</option>
-                  <option value="NAGAD">নগদ (Nagad)</option>
-                  <option value="BANK">ব্যাংক ট্রান্সফার</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-foreground mb-1">পেমেন্ট মেথড *</label>
+                  <select
+                    value={deliverMethod}
+                    onChange={(e) => setDeliverMethod(e.target.value as any)}
+                    className="w-full p-2.5 rounded-lg border bg-background text-foreground"
+                  >
+                    <option value="CASH">ক্যাশ (Cash)</option>
+                    <option value="BKASH">বিকাশ (bKash)</option>
+                    <option value="NAGAD">নগদ (Nagad)</option>
+                    <option value="BANK">ব্যাংক ট্রান্সফার</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-medium text-rose-600 dark:text-rose-400 mb-1">বিশেষ ছাড় / ডিসকাউন্ট (৳)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={Math.max(0, activeJob.totalAmount - activeJob.paidAmount)}
+                    value={deliverDiscount}
+                    onChange={(e) => {
+                      const disc = Math.max(0, Number(e.target.value || 0));
+                      setDeliverDiscount(disc);
+                      const netDue = Math.max(0, activeJob.totalAmount - disc - activeJob.paidAmount);
+                      setDeliverPaidAmount(netDue);
+                    }}
+                    placeholder="0.00"
+                    className="w-full p-2.5 rounded-lg border border-rose-300 dark:border-rose-800 bg-background text-rose-600 dark:text-rose-400 font-bold"
+                  />
+                </div>
               </div>
 
               <div>
@@ -1887,7 +1961,7 @@ export function RepairBoard({
                   <div className="flex gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setDeliverPaidAmount(Math.max(0, activeJob.totalAmount - activeJob.paidAmount))}
+                      onClick={() => setDeliverPaidAmount(Math.max(0, activeJob.totalAmount - deliverDiscount - activeJob.paidAmount))}
                       className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded hover:bg-emerald-500/20"
                     >
                       ফুল পেইড
@@ -1904,7 +1978,7 @@ export function RepairBoard({
                 <input
                   type="number"
                   min="0"
-                  max={Math.max(0, activeJob.totalAmount - activeJob.paidAmount)}
+                  max={Math.max(0, activeJob.totalAmount - deliverDiscount - activeJob.paidAmount)}
                   value={deliverPaidAmount}
                   onChange={(e) => setDeliverPaidAmount(Number(e.target.value))}
                   className="w-full p-2.5 rounded-lg border bg-background text-foreground font-semibold"
@@ -1912,11 +1986,11 @@ export function RepairBoard({
                 />
               </div>
 
-              {Math.max(0, activeJob.totalAmount - activeJob.paidAmount) - deliverPaidAmount > 0 && (
+              {Math.max(0, activeJob.totalAmount - deliverDiscount - activeJob.paidAmount) - deliverPaidAmount > 0 && (
                 <div className="p-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 rounded-lg font-semibold flex justify-between items-center text-xs">
                   <span>গ্রাহক হিসেবে অবশিষ্ট বাকি (Remaining Due to Ledger):</span>
                   <span className="font-bold text-sm font-mono">
-                    {formatBDT(Math.max(0, activeJob.totalAmount - activeJob.paidAmount) - deliverPaidAmount)}
+                    {formatBDT(Math.max(0, activeJob.totalAmount - deliverDiscount - activeJob.paidAmount) - deliverPaidAmount)}
                   </span>
                 </div>
               )}
@@ -2020,8 +2094,20 @@ export function RepairBoard({
                     <span>{formatBDT(activeJob.labourCost)}</span>
                   </div>
                 )}
+                {Number(activeJob.estimatedCost) > Number(activeJob.totalAmount) && (
+                  <>
+                    <div className="flex justify-between text-[11px] text-slate-600">
+                      <span>আনুমানিক সার্ভিস ফি:</span>
+                      <span>{formatBDT(activeJob.estimatedCost)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-rose-600 font-semibold">
+                      <span>বিশেষ ছাড় (Discount):</span>
+                      <span>- {formatBDT(Number(activeJob.estimatedCost) - Number(activeJob.totalAmount))}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between font-bold text-sm text-slate-950 pt-1 border-t">
-                  <span>সর্বমোট বিল (Total):</span>
+                  <span>সর্বমোট প্রদেয় বিল (Net Total):</span>
                   <span>{formatBDT(activeJob.totalAmount > 0 ? activeJob.totalAmount : activeJob.estimatedCost)}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-emerald-700">

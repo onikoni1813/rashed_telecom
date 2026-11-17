@@ -306,6 +306,12 @@ describe("Repair Servicing Domain Service (Phase 4)", () => {
       paymentStatus: "PAID",
     } as any);
 
+    vi.mocked(prisma.account.findMany).mockResolvedValueOnce([
+      { id: "acc-1000", code: "1000" },
+      { id: "acc-4100", code: "4100" },
+    ] as any);
+    vi.mocked(prisma.journalEntry.create).mockResolvedValueOnce({ id: "je-deliver" } as any);
+
     const delivered = await deliverServiceJob({
       shopId,
       jobId,
@@ -352,6 +358,12 @@ describe("Repair Servicing Domain Service (Phase 4)", () => {
       paymentStatus: "PAID",
     } as any);
 
+    vi.mocked(prisma.account.findMany).mockResolvedValueOnce([
+      { id: "acc-1000", code: "1000" },
+      { id: "acc-4100", code: "4100" },
+    ] as any);
+    vi.mocked(prisma.journalEntry.create).mockResolvedValueOnce({ id: "je-deliver" } as any);
+
     const delivered = await deliverServiceJob({
       shopId,
       jobId,
@@ -376,6 +388,106 @@ describe("Repair Servicing Domain Service (Phase 4)", () => {
               }),
             ],
           },
+        }),
+      })
+    );
+  });
+
+  it("creates a new service job with discount applied to net total", async () => {
+    vi.mocked(prisma.customer.findUnique).mockResolvedValueOnce({
+      id: customerId,
+      shopId,
+      name: "Md. Al-Amin",
+    } as any);
+
+    vi.mocked(prisma.serviceJob.count).mockResolvedValueOnce(0);
+    vi.mocked(prisma.serviceJob.create).mockResolvedValueOnce({
+      id: jobId,
+      shopId,
+      jobNumber: "JOB-000001",
+      deviceBrand: "Samsung",
+      deviceModel: "Galaxy A15",
+      estimatedCost: 150 as any,
+      totalAmount: 130 as any,
+      paidAmount: 30 as any,
+      dueAmount: 100 as any,
+      status: "INTAKE",
+    } as any);
+
+    const job = await createServiceJob({
+      shopId,
+      customerId,
+      deviceBrand: "Samsung",
+      deviceModel: "Galaxy A15",
+      estimatedCost: 150,
+      discount: 20,
+      paidAmount: 30,
+      intakeCashierId: cashierId,
+    });
+
+    expect(job.jobNumber).toBe("JOB-000001");
+    expect(prisma.serviceJob.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          estimatedCost: expect.anything(),
+          totalAmount: expect.anything(),
+          dueAmount: expect.anything(),
+        }),
+      })
+    );
+  });
+
+  it("successfully applies discount during service job delivery", async () => {
+    vi.mocked(prisma.serviceJob.findUnique).mockResolvedValueOnce({
+      id: jobId,
+      shopId,
+      jobNumber: "JOB-000001",
+      customer: { id: customerId, name: "Customer", totalDue: 0 },
+      status: "READY_FOR_DELIVERY",
+      totalAmount: 250 as any,
+      paidAmount: 50 as any,
+      dueAmount: 200 as any,
+      paymentStatus: "PARTIALLY_PAID",
+    } as any);
+
+    vi.mocked(prisma.serviceWarranty.create).mockResolvedValueOnce({
+      id: "war-3",
+      warrantyDays: 30,
+    } as any);
+
+    vi.mocked(prisma.account.findMany).mockResolvedValueOnce([
+      { id: "acc-1000", code: "1000" },
+      { id: "acc-4100", code: "4100" },
+    ] as any);
+    vi.mocked(prisma.journalEntry.create).mockResolvedValueOnce({ id: "je-deliver" } as any);
+
+    vi.mocked(prisma.serviceJob.update).mockResolvedValueOnce({
+      id: jobId,
+      status: "DELIVERED",
+      totalAmount: 220 as any,
+      paidAmount: 220 as any,
+      dueAmount: 0 as any,
+      paymentStatus: "PAID",
+    } as any);
+
+    const delivered = await deliverServiceJob({
+      shopId,
+      jobId,
+      deliveredById: cashierId,
+      paymentMethod: "CASH",
+      discount: 30, // 250 - 30 = 220 net total. 50 paid previously -> 170 remaining
+      paidAmount: 170,
+      warrantyDays: 30,
+    });
+
+    expect(delivered.status).toBe("DELIVERED");
+    expect(delivered.paymentStatus).toBe("PAID");
+    expect(prisma.serviceJob.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "DELIVERED",
+          totalAmount: expect.anything(),
+          dueAmount: expect.anything(),
         }),
       })
     );
