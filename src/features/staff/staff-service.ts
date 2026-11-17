@@ -61,9 +61,32 @@ export async function createStaffProfile(input: CreateStaffProfileInput) {
           ...(input.email ? [{ email: input.email }] : []),
         ],
       },
+      include: {
+        memberships: {
+          where: { shopId: input.shopId },
+          include: { role: true },
+        },
+        staffProfiles: {
+          where: { shopId: input.shopId },
+        },
+      },
     });
 
-    if (!user) {
+    if (user) {
+      // Check if user already has a staff profile in this shop
+      const existingProfile = user.staffProfiles?.[0];
+      if (existingProfile) {
+        const isOwner = user.memberships?.some((m: any) => m.role?.name === "OWNER");
+        if (isOwner) {
+          throw new ConflictError(
+            `এই মোবাইল নম্বরটি (${input.phone}) ইতিমধ্যে দোকানের অ্যাডমিন/মালিক '${user.fullName}' হিসেবে নিবন্ধিত রয়েছে। মালিক স্বয়ংক্রিয়ভাবেই সার্ভিস বোর্ডে টেকনিশিয়ান হিসেবে তালিকাভুক্ত আছেন। নতুন কোনো কর্মীকে যুক্ত করতে চাইলে তাঁর নিজস্ব মোবাইল নম্বর ব্যবহার করুন।`
+          );
+        }
+        throw new ConflictError(
+          `এই মোবাইল নম্বরের (${input.phone}) কর্মী ইতিমধ্যে '${existingProfile.employeeCode}' (${user.fullName}) হিসেবে যুক্ত আছেন।`
+        );
+      }
+    } else {
       user = await tx.user.create({
         data: {
           fullName: input.fullName,
@@ -71,28 +94,35 @@ export async function createStaffProfile(input: CreateStaffProfileInput) {
           email: input.email || null,
           isActive: true,
         },
+        include: {
+          memberships: true,
+          staffProfiles: true,
+        },
       });
     }
 
-    // 3. Ensure Shop Membership
-    await tx.shopMember.upsert({
-      where: {
-        shopId_userId: {
+    // 3. Ensure Shop Membership (never demote an OWNER)
+    const isOwner = user.memberships?.some((m: any) => m.role?.name === "OWNER");
+    if (!isOwner) {
+      await tx.shopMember.upsert({
+        where: {
+          shopId_userId: {
+            shopId: input.shopId,
+            userId: user.id,
+          },
+        },
+        update: {
+          roleId: input.roleId,
+          isActive: true,
+        },
+        create: {
           shopId: input.shopId,
           userId: user.id,
+          roleId: input.roleId,
+          isActive: true,
         },
-      },
-      update: {
-        roleId: input.roleId,
-        isActive: true,
-      },
-      create: {
-        shopId: input.shopId,
-        userId: user.id,
-        roleId: input.roleId,
-        isActive: true,
-      },
-    });
+      });
+    }
 
     // 4. Create Staff Profile
     const profile = await tx.staffProfile.create({

@@ -108,6 +108,28 @@ describe("Staff & Operations Domain Service - Staff & Payroll", () => {
       ).rejects.toThrow(ConflictError);
     });
 
+    it("throws ConflictError when user with phone number already has a staff profile in the shop", async () => {
+      vi.mocked(prisma.staffProfile.findUnique).mockResolvedValueOnce(null);
+      vi.mocked(prisma.user.findFirst).mockResolvedValueOnce({
+        id: "owner-user-id",
+        fullName: "Rashed Sarkar",
+        phone: "01521378476",
+        memberships: [{ role: { name: "OWNER" } }],
+        staffProfiles: [{ id: "profile-owner", employeeCode: "EMP-001" }],
+      } as any);
+
+      await expect(
+        createStaffProfile({
+          shopId,
+          fullName: "Rashed Sarkar",
+          phone: "01521378476",
+          roleId,
+          baseSalary: 10000,
+          actorId,
+        })
+      ).rejects.toThrow(ConflictError);
+    });
+
     it("successfully creates user, membership and staff profile with audit log", async () => {
       vi.mocked(prisma.staffProfile.findUnique).mockResolvedValueOnce(null);
       vi.mocked(prisma.user.findFirst).mockResolvedValueOnce(null);

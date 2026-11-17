@@ -66,7 +66,7 @@ async function ServiceDataLoader() {
         memberships: {
           some: {
             shopId: defaultShopId,
-            role: { name: "TECHNICIAN" },
+            role: { name: { in: ["TECHNICIAN", "OWNER", "MANAGER"] } },
           },
         },
       },
